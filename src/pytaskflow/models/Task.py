@@ -3,7 +3,7 @@ def keys_to_lower(data: dict):
     final_data = dict()
     for key in data.keys():
         if isinstance(data[key], dict):
-            final_data[key.upper()] = keys_to_lower(data[key])
+            final_data[key.lower()] = keys_to_lower(data[key])
         else:
             final_data[key.lower()] = data[key]
     return final_data

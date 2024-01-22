@@ -8,6 +8,7 @@ def keys_to_lower(data: dict):
             final_data[key.lower()] = data[key]
     return final_data
 
+
 class Task:
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict()):
@@ -34,13 +35,35 @@ class Task:
                     self.annotations[key] = '{}'.format(val)
 
 
+class TaskProcessor:
+
+    def __init__(self, kind: str, kind_versions: list):
+        self.kind = kind
+        self.versions = kind_versions
+
+    def process_task(self, task: Task, command: str, context: str='default'):
+        raise Exception('Not implemented')
+
+
 class Tasks:
 
     def __init__(self):
         self.tasks = list()
+        self.task_processors_executors = dict()
+        self.task_processor_register = dict()
 
     def add_task(self, task: Task):
         self.tasks.append(task)
+
+    def register_task_processor(self, processor: TaskProcessor):
+        if isinstance(processor.versions, list):
+            executor_id = '{}'.format(processor.kind)
+            for version in processor.versions:
+                executor_id = '{}:{}'.format(executor_id, version)
+            self.task_processors_executors[executor_id] = processor
+            for version in processor.versions:
+                id = '{}:{}'.format(processor.kind, version)
+                self.task_processor_register[id] = executor_id
 
     
 

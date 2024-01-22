@@ -16,7 +16,9 @@ class Task:
         self.metadata = keys_to_lower(data=metadata)
         self.spec = keys_to_lower(data=spec)
         self.selector_register = dict()
+        self.annotations = dict()
         self._calculate_selector_registers()
+        self._register_annotations()
 
     def _calculate_selector_registers(self):
         if 'name' in self.metadata:
@@ -24,6 +26,12 @@ class Task:
         if 'labels' in self.metadata:
             for label_key, label_value in self.metadata['labels'].items():
                 self.selector_register[label_key] = '{}'.format(label_value)
+    
+    def _register_annotations(self):
+        if 'annotations' in self.metadata:
+            if isinstance(self.metadata['annotations'], dict):
+                for key, val in self.metadata['annotations'].items():
+                    self.annotations[key] = '{}'.format(val)
 
 
 class Tasks:

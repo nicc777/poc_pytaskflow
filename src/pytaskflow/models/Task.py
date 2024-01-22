@@ -18,21 +18,31 @@ class Task:
         self.spec = keys_to_lower(data=spec)
         self.selector_register = dict()
         self.annotations = dict()
+        self.task_dependencies = dict()
         self._calculate_selector_registers()
         self._register_annotations()
+        self._register_dependencies()
 
     def _calculate_selector_registers(self):
         if 'name' in self.metadata:
-            self.selector_register['name'] = self.metadata['name']
+            self.selector_register['name'] = '{}'.format(self.metadata['name'])
         if 'labels' in self.metadata:
-            for label_key, label_value in self.metadata['labels'].items():
-                self.selector_register[label_key] = '{}'.format(label_value)
+            if isinstance(self.metadata['labels'], dict):
+                for label_key, label_value in self.metadata['labels'].items():
+                    self.selector_register[label_key] = '{}'.format(label_value)
     
     def _register_annotations(self):
         if 'annotations' in self.metadata:
             if isinstance(self.metadata['annotations'], dict):
                 for key, val in self.metadata['annotations'].items():
                     self.annotations[key] = '{}'.format(val)
+
+    def _register_dependencies(self):
+        if 'dependencies' in self.metadata:
+            if isinstance(self.metadata['dependencies'], dict):
+                for context, context_dependencies in self.metadata['dependencies'].items():
+                    if isinstance(context_dependencies, list):
+                        self.task_dependencies[context] = context_dependencies
 
 
 class TaskProcessor:

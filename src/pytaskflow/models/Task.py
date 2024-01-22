@@ -129,8 +129,4 @@ class Tasks:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
                             target_task_processor_executor.process_task(task=task, command=command, context=context)
-                    
-
-
-    
 

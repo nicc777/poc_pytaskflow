@@ -27,6 +27,20 @@ global_key_value_store = KeyValueStore()
 class Task:
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict()):
+        """
+            Typical Manifest:
+
+                kind: STRING                                                    [required]
+                version: STRING                                                 [required]
+                metadata:
+                  name: STRING                                                  [optional]
+                  labels:                                                       [optional]
+                    key: STRING
+                  annotations:                                                  [optional]
+                    contexts: CSV-STRING                                        [optional, but when supplied only commands within the defined context will be in scope for processing]
+                    dependency/name: CSV-STRING                                 [optional. list of other task names this task depends on]
+                    dependency/label/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
+        """
         self.kind = kind
         self.version = version
         self.metadata = dict()
@@ -40,12 +54,27 @@ class Task:
         self.selector_register = dict()
         self.annotations = dict()
         self.task_dependencies = dict()
+        self.task_dependencies['NamedTasks'] = list()
+        self.task_dependencies['Labels'] = list()
         self.task_as_dict = dict()
+        self.task_contexts = ['default']
         self._calculate_selector_registers()
         self._register_annotations()
         self._register_dependencies()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
+
+    def task_match_name(self, name: str)->bool:
+        if 'name' in self.selector_register:
+            if name == self.selector_register['name']:
+                return True
+        return False
+    
+    def task_match_label(self, key: str, value: str)->bool:
+        if key in self.selector_register:
+            if value == self.selector_register[key]:
+                return True
+        return False
 
     def _calculate_selector_registers(self):
         if 'name' in self.metadata:
@@ -59,14 +88,28 @@ class Task:
         if 'annotations' in self.metadata:
             if isinstance(self.metadata['annotations'], dict):
                 for key, val in self.metadata['annotations'].items():
-                    self.annotations[key] = '{}'.format(val)
+                    if key != 'dependency/name' and not key != 'contexts' and not key.startswith('dependency/label/'):
+                        self.annotations[key] = '{}'.format(val)
+                    elif key.startswith('contexts'):
+                        for item in '{}'.format(val).replace(' ', '').split(','):
+                            if 'default' in self.task_contexts and len(self.task_contexts) == 1 and item != 'default':
+                                self.task_contexts = list()
+                            self.task_contexts.append(item)
 
     def _register_dependencies(self):
-        if 'dependencies' in self.metadata:
-            if isinstance(self.metadata['dependencies'], dict):
-                for context, context_dependencies in self.metadata['dependencies'].items():
-                    if isinstance(context_dependencies, list):
-                        self.task_dependencies[context] = context_dependencies
+        if 'annotations' in self.metadata:
+            if isinstance(self.metadata['annotations'], dict):
+                for annotation_key, annotation_value in self.metadata['annotations'].items():
+                    if annotation_key.lower() == 'dependency/name':
+                        for item in '{}'.format(annotation_value).replace(' ', '').split(','):
+                            if len(item) > 0:
+                                self.task_dependencies['NamedTasks'].append(item)
+                    if annotation_key.lower().startswith('dependency/label/'):
+                        self.task_dependencies['Labels'].append(
+                            {
+                                '{}'.format(annotation_key.lower()): '{}'.format(annotation_value)
+                            }
+                        )
 
     def _calculate_task_checksum(self)->str:
         data = dict()
@@ -92,11 +135,26 @@ class Task:
 
 class TaskProcessor:
 
-    def __init__(self, kind: str, kind_versions: list):
+    def __init__(self, kind: str, kind_versions: list, supported_commands: list=['apply', 'get', 'delete', 'describe']):
         self.kind = kind
         self.versions = kind_versions
+        self.supported_commands = supported_commands
 
-    def process_task(self, task: Task, command: str, context: str='default', global_key_Value_store: KeyValueStore=KeyValueStore()):
+    def task_pre_processing_registration_check(self, task: Task, command: str, context: str='default'):
+        task_run_id = 'PROCESSING_TASK:{}:{}:{}'.format(
+            task.task_id,
+            command,
+            context
+        )
+        if task_run_id not in global_key_value_store.store:
+            global_key_value_store.save(key=task_run_id, value=1)
+            try:
+                self.process_task(task=task, command=command, context=context)
+                global_key_value_store.store[task_run_id] = 2
+            except:
+                global_key_value_store.store[task_run_id] = -1
+
+    def process_task(self, task: Task, command: str, context: str='default'):
         raise Exception('Not implemented')
 
 
@@ -123,13 +181,33 @@ class Tasks:
                 id = '{}:{}'.format(processor.kind, version)
                 self.task_processor_register[id] = executor_id
 
+    def _task_qualifies_for_contextual_processing(self, task: Task, command: str, context: str)->bool:
+        if context in task.task_contexts:
+            target_task_processor_id = '{}:{}'.format(task.kind, task.version)
+            if target_task_processor_id in self.task_processor_register:
+                target_task_processor_executor_id = self.task_processor_register[target_task_processor_id]
+                if target_task_processor_executor_id in self.task_processors_executors:
+                    target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
+                    if command in target_task_processor_executor.supported_commands:
+                        return True
+        return False
+
+    def _order_tasks(self, ordered_list: list, candidate_task: Task)->list:
+        if candidate_task.task_id in ordered_list:
+            return ordered_list # Already seen...
+        # TODO Determine Dependencies
+        ordered_list.append(candidate_task.task_id)
+        return ordered_list
+
     def process_context(self, command: str, context: str):
         """
             1. Determine the order based on task dependencies
             2. Process tasks in order, with the available task processor registered for this task kind and version
         """
         task_order = list()
-        # TODO : order tasks
+        for task_id, task in self.tasks.items():
+            if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
+                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task)
 
         for task_id in task_order:
             if task_id in self.tasks:
@@ -140,5 +218,5 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
-                            target_task_processor_executor.process_task(task=task, command=command, context=context, global_key_Value_store=global_key_value_store)
+                            target_task_processor_executor.task_pre_processing_registration_check(task=task, command=command, context=context, global_key_Value_store=global_key_value_store)
 

@@ -12,6 +12,18 @@ def keys_to_lower(data: dict):
     return final_data
 
 
+class KeyValueStore:
+
+    def __init__(self):
+        self.store = dict()
+
+    def save(self, key: str, value: object):
+        self.store[key] = value
+
+
+global_key_value_store = KeyValueStore()
+
+
 class Task:
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict()):
@@ -84,7 +96,7 @@ class TaskProcessor:
         self.kind = kind
         self.versions = kind_versions
 
-    def process_task(self, task: Task, command: str, context: str='default'):
+    def process_task(self, task: Task, command: str, context: str='default', global_key_Value_store: KeyValueStore=KeyValueStore()):
         raise Exception('Not implemented')
 
 
@@ -128,5 +140,5 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
-                            target_task_processor_executor.process_task(task=task, command=command, context=context)
+                            target_task_processor_executor.process_task(task=task, command=command, context=context, global_key_Value_store=global_key_value_store)
 

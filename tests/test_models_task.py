@@ -50,6 +50,7 @@ class TestLogger(LoggerWrapper):
 class TestFunctionKeysToLower(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
+        print()
         print('-'*80)
 
     def test_keys_to_lower_1(self):
@@ -77,6 +78,7 @@ class TestFunctionKeysToLower(unittest.TestCase):    # pragma: no cover
 class TestObjectInstanceGlobalKeyValueStore(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
+        print()
         print('-'*80)
 
     def test_global_key_value_store_basic(self):
@@ -96,6 +98,7 @@ class TestObjectInstanceGlobalKeyValueStore(unittest.TestCase):    # pragma: no 
 class TestClassTask(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
+        print()
         print('-'*80)
         self.logger = TestLogger()
 

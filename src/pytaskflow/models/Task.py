@@ -1,5 +1,6 @@
 import json
 import hashlib
+import copy
 
 
 def keys_to_lower(data: dict):
@@ -22,6 +23,34 @@ class KeyValueStore:
 
 
 global_key_value_store = KeyValueStore()
+
+
+class LoggerWrapper:
+
+    def __init__(self):
+        pass
+
+    def info(self, message: str):
+        if isinstance(message, str):
+            print(message)
+
+    def warn(self, message: str):
+        self.info(message=message)
+
+    def warning(self, message: str):
+        self.info(message=message)
+
+    def debug(self, message: str):
+        self.info(message=message)
+
+    def critical(self, message: str):
+        self.info(message=message)
+
+    def error(self, message: str):
+        self.info(message=message)
+
+
+logger = LoggerWrapper()
 
 
 class Task:
@@ -63,6 +92,7 @@ class Task:
         self._register_dependencies()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
+        logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
 
     def task_match_name(self, name: str)->bool:
         if 'name' in self.selector_register:
@@ -125,12 +155,12 @@ class Task:
     def _determine_task_id(self):
         self.task_checksum = self._calculate_task_checksum()
         if 'name' in self.selector_register:
-            self.task_id = hashlib.sha256(self.selector_register['name'].encode('utf-8')).hexdigest()
+            return hashlib.sha256(self.selector_register['name'].encode('utf-8')).hexdigest()
         elif len(self.selector_register) > 0:
             selector_register_json = json.dumps(self.selector_register)
-            self.task_id = hashlib.sha256(selector_register_json.encode('utf-8')).hexdigest()
+            return hashlib.sha256(selector_register_json.encode('utf-8')).hexdigest()
         else:
-            self.task_id = self.task_checksum
+            return copy.deepcopy(self.task_checksum)
 
 
 class TaskProcessor:

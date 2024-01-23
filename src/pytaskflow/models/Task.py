@@ -198,11 +198,12 @@ class Tasks:
                 return candidate_task
         return None
     
-    def find_task_by_label_match(self, label_key: str, label_value: str)->Task:
+    def find_task_by_label_match(self, label_key: str, label_value: str)->list:
+        tasks = list()
         for task_id, candidate_task in self.tasks.items():
             if candidate_task.task_match_label(key=label_key, value=label_value) is True:
-                return candidate_task
-        return None
+                tasks.append(candidate_task)
+        return tasks
 
     def _order_tasks(self, ordered_list: list, candidate_task: Task)->list:
         if candidate_task.task_id in ordered_list:
@@ -215,10 +216,11 @@ class Tasks:
         for dependant_task_label in candidate_task.task_dependencies['Labels']:
             label_key = list(dependant_task_label.keys())[0]
             label_value = dependant_task_label[label_key]
-            dependant_task = self.find_task_by_label_match(label_key=label_key, label_value=label_value)
-            if dependant_task is not None:
-                if isinstance(dependant_task, Task):
-                    ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
+            dependant_tasks = self.find_task_by_label_match(label_key=label_key, label_value=label_value)
+            if len(dependant_tasks) > 0:
+                for dependant_task in dependant_tasks:
+                    if isinstance(dependant_task, Task):
+                        ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
         ordered_list.append(candidate_task.task_id)
         return ordered_list
 

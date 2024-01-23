@@ -56,5 +56,17 @@ class TestObjectInstanceGlobalKeyValueStore(unittest.TestCase):    # pragma: no 
         self.assertIsInstance(global_key_value_store.store['test_key_3'], bool)
 
 
+class TestClassTask(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print('-'*80)
+
+    def test_task_basic_init_minimal_1(self):
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict())
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+
 if __name__ == '__main__':
     unittest.main()

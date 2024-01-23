@@ -37,5 +37,24 @@ class TestFunctionKeysToLower(unittest.TestCase):    # pragma: no cover
         self.assertTrue('dd' in bb)
 
 
+class TestObjectInstanceGlobalKeyValueStore(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print('-'*80)
+
+    def test_global_key_value_store_basic(self):
+        self.assertIsInstance(global_key_value_store, KeyValueStore)
+        global_key_value_store.save(key='test_key_1', value='test_value')
+        global_key_value_store.save(key='test_key_2', value=123)
+        global_key_value_store.save(key='test_key_3', value=True)
+        self.assertEqual(len(global_key_value_store.store), 3)
+        self.assertTrue('test_key_1' in global_key_value_store.store)
+        self.assertTrue('test_key_2' in global_key_value_store.store)
+        self.assertTrue('test_key_3' in global_key_value_store.store)
+        self.assertIsInstance(global_key_value_store.store['test_key_1'], str)
+        self.assertIsInstance(global_key_value_store.store['test_key_2'], int)
+        self.assertIsInstance(global_key_value_store.store['test_key_3'], bool)
+
+
 if __name__ == '__main__':
     unittest.main()

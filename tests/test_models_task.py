@@ -10,6 +10,43 @@ from pytaskflow.models.Task import *
 running_path = os.getcwd()
 print('Current Working Path: {}'.format(running_path))
 
+
+class TestLogger(LoggerWrapper):
+
+    def __init__(self):
+        super().__init__()
+        self.info_lines = list()
+        self.warn_lines = list()
+        self.debug_lines = list()
+        self.critical_lines = list()
+        self.error_lines = list()
+
+    def info(self, message: str):
+        self.info_lines.append('[LOG] INFO: {}'.format(message))
+
+    def warn(self, message: str):
+        self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+
+    def warning(self, message: str):
+        self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+
+    def debug(self, message: str):
+        self.debug_lines.append('[LOG] DEBUG: {}'.format(message))
+
+    def critical(self, message: str):
+        self.critical_lines.append('[LOG] CRITICAL: {}'.format(message))
+
+    def error(self, message: str):
+        self.error_lines.append('[LOG] ERROR: {}'.format(message))
+
+    def reset(self):
+        self.info_lines = list()
+        self.warn_lines = list()
+        self.debug_lines = list()
+        self.critical_lines = list()
+        self.error_lines = list()
+
+
 class TestFunctionKeysToLower(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
@@ -60,12 +97,49 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
         print('-'*80)
+        self.logger = TestLogger()
+
+    def tearDown(self):
+        for line in self.logger.info_lines:
+            print(line)
+        for line in self.logger.warn_lines:
+            print(line)
+        for line in self.logger.debug_lines:
+            print(line)
+        for line in self.logger.critical_lines:
+            print(line)
+        for line in self.logger.error_lines:
+            print(line)
 
     def test_task_basic_init_minimal_1(self):
-        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict())
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
         self.assertIsNotNone(t)
         self.assertIsInstance(t, Task)
         self.assertEqual(t.kind, 'TestKind')
+
+        match_found = False
+        for line in self.logger.info_lines:
+            if 'registered. Task checksum:' in line:
+                match_found = True
+        self.assertTrue(match_found)
+
+    def test_task_basic_init_minimal_with_name_1(self):
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1'}, logger=self.logger)
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+        match_found = False
+        for line in self.logger.info_lines:
+            if 'registered. Task checksum:' in line:
+                match_found = True
+        self.assertTrue(match_found)
+
+        match_1 = t.task_match_name(name='test1')
+        match_2 = t.task_match_name(name='test2')
+
+        self.assertTrue(match_1)
+        self.assertFalse(match_2)
 
 
 if __name__ == '__main__':

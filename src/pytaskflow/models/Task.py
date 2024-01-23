@@ -50,12 +50,9 @@ class LoggerWrapper:
         self.info(message=message)
 
 
-logger = LoggerWrapper()
-
-
 class Task:
 
-    def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict()):
+    def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict(), logger: LoggerWrapper=LoggerWrapper()):
         """
             Typical Manifest:
 
@@ -70,6 +67,7 @@ class Task:
                     dependency/name: CSV-STRING                                 [optional. list of other task names this task depends on]
                     dependency/label/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
         """
+        self.logger = logger
         self.kind = kind
         self.version = version
         self.metadata = dict()
@@ -95,12 +93,17 @@ class Task:
         logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
 
     def task_match_name(self, name: str)->bool:
+        self.logger.debug(message='[task:{}] Attempting to match name "{}"'.format(self.task_id, name))
         if 'name' in self.selector_register:
+            self.logger.debug(message='[task:{}] Local task name is "{}"'.format(self.task_id, self.selector_register['name']))
             if name == self.selector_register['name']:
                 return True
+        else:
+            self.logger.debug(message='[task:{}] This task has no name defined and a match can therefore not be made.'.format(self.task_id))
         return False
     
     def task_match_label(self, key: str, value: str)->bool:
+        self.logger.debug(message='[task:{}] Attempting to match label with key "{}" and value "{}"'.format(self.task_id, key, value))
         if key in self.selector_register:
             if value == self.selector_register[key]:
                 return True
@@ -165,7 +168,8 @@ class Task:
 
 class TaskProcessor:
 
-    def __init__(self, kind: str, kind_versions: list, supported_commands: list=['apply', 'get', 'delete', 'describe']):
+    def __init__(self, kind: str, kind_versions: list, supported_commands: list=['apply', 'get', 'delete', 'describe'], logger: LoggerWrapper=LoggerWrapper()):
+        self.logger = logger
         self.kind = kind
         self.versions = kind_versions
         self.supported_commands = supported_commands
@@ -190,7 +194,8 @@ class TaskProcessor:
 
 class Tasks:
 
-    def __init__(self):
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper()):
+        self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()

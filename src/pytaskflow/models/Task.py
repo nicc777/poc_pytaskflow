@@ -25,7 +25,7 @@ class KeyValueStore:
 global_key_value_store = KeyValueStore()
 
 
-class LoggerWrapper:
+class LoggerWrapper:    # pragma: no cover
 
     def __init__(self):
         pass

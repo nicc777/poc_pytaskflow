@@ -161,11 +161,7 @@ class Task:
         self.task_checksum = self._calculate_task_checksum()
         if 'name' in self.selector_register:
             return hashlib.sha256(self.selector_register['name'].encode('utf-8')).hexdigest()
-        elif len(self.selector_register) > 0:
-            selector_register_json = json.dumps(self.selector_register)
-            return hashlib.sha256(selector_register_json.encode('utf-8')).hexdigest()
-        else:
-            return copy.deepcopy(self.task_checksum)
+        return copy.deepcopy(self.task_checksum)
         
     def __iter__(self):
         for k,v in self.task_as_dict.items():

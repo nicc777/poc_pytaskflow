@@ -66,6 +66,8 @@ class Task:
                     contexts: CSV-STRING                                        [optional, but when supplied only commands within the defined context will be in scope for processing]
                     dependency/name: CSV-STRING                                 [optional. list of other task names this task depends on]
                     dependency/label/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
+                spec:
+                  ... as required by the TaskProcessor ...
         """
         self.logger = logger
         self.kind = kind

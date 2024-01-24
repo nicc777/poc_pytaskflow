@@ -144,6 +144,28 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertTrue(match_1)
         self.assertFalse(match_2)
 
+    def test_task_basic_init_minimal_with_name_and_labels_1(self):
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1', 'labels': {'label1': 'labelvalue1', 'label2': 'labelvalue2'}}, logger=self.logger)
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+        match_1a = t.task_match_name(name='test1')
+        match_1b = t.task_match_label(key='label1', value='labelvalue1')
+        match_1c = t.task_match_label(key='label2', value='labelvalue2')
+        match_2a = t.task_match_name(name='test2')
+        match_2b = t.task_match_label(key='label1', value='labelvalue2')
+        match_2c = t.task_match_label(key='label2', value='labelvalue1')
+        match_2d = t.task_match_label(key='label3', value='labelvalue3')
+        
+        self.assertTrue(match_1a)
+        self.assertTrue(match_1b)
+        self.assertTrue(match_1c)
+        self.assertFalse(match_2a)
+        self.assertFalse(match_2b)
+        self.assertFalse(match_2c)
+        self.assertFalse(match_2d)
+        
 
 if __name__ == '__main__':
     unittest.main()

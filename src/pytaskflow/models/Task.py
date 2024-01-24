@@ -176,19 +176,31 @@ class TaskProcessor:
         self.versions = kind_versions
         self.supported_commands = supported_commands
 
-    def task_pre_processing_registration_check(self, task: Task, command: str, context: str='default'):
+    def task_pre_processing_registration_check(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore(),
+        call_process_task_if_check_pass: bool=False
+    )->KeyValueStore:
         task_run_id = 'PROCESSING_TASK:{}:{}:{}'.format(
             task.task_id,
             command,
             context
         )
         if task_run_id not in global_key_value_store.store:
-            global_key_value_store.save(key=task_run_id, value=1)
+            key_value_store.save(key=task_run_id, value=1)
+        if key_value_store.store[task_run_id] == 1:
             try:
-                self.process_task(task=task, command=command, context=context)
-                global_key_value_store.store[task_run_id] = 2
+                if call_process_task_if_check_pass is True:
+                    key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store)
+                    key_value_store.store[task_run_id] = 2
             except:
-                global_key_value_store.store[task_run_id] = -1
+                key_value_store.store[task_run_id] = -1
+        else:
+            self.logger.warning(message='Appears task was already previously validated or executed')
+        return key_value_store
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
         raise Exception('Not implemented')

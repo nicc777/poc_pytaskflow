@@ -342,7 +342,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         print('-'*80)
         self.key_value_store = KeyValueStore()
 
-    def test_processor_1_init(self):
+    def test_processor_1_init_with_successful_exec_of_a_task(self):
         p1 = Processor1()
         t1 = Task(
             kind='Processor1',
@@ -367,6 +367,84 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
 
         p1_logger = p1.logger
         self.assertIsNotNone(p1_logger)
+        self.assertTrue('[LOG] INFO: [Processor1]: can_process=True' in p1.logger.info_lines, 'info_lines={}'.format(p1.logger.info_lines))
+
+    def test_processor_1_init_with_none_matching_task(self):
+        p1 = Processor1()
+        t1 = Task(
+            kind='Processor2',  # !!!
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                }
+            },
+            logger=TestLogger()
+        )
+        self.key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
+        self.assertIsNotNone(self.key_value_store)
+        self.assertIsInstance(self.key_value_store, KeyValueStore)
+        self.assertIsNotNone(self.key_value_store.store)
+        self.assertIsInstance(self.key_value_store.store, dict)
+        self.assertEqual(len(self.key_value_store.store), 1)
+        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
+        self.assertFalse(self.key_value_store.store['Processor1:Processed:Success'])
+
+        p1_logger = p1.logger
+        self.assertIsNotNone(p1_logger)
+        self.assertTrue('[LOG] INFO: [Processor1]: can_process=False' in p1.logger.info_lines, 'info_lines={}'.format(p1.logger.info_lines))
+
+    def test_method_task_pre_processing_registration_check_with_valid_task_1(self):
+        p1 = Processor1()
+        t1 = Task(
+            kind='Processor2',  # !!!
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                }
+            },
+            logger=TestLogger()
+        )
+        expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
+        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
+        self.assertIsNotNone(self.key_value_store)
+        self.assertIsInstance(self.key_value_store, KeyValueStore)
+        self.assertIsNotNone(self.key_value_store.store)
+        self.assertIsInstance(self.key_value_store.store, dict)
+        self.assertEqual(len(self.key_value_store.store), 1)
+        self.assertTrue(expected_key in self.key_value_store.store)
+        self.assertEqual(self.key_value_store.store[expected_key], 1)
+
+    def test_method_task_pre_processing_registration_check_with_valid_task_and_execute_1(self):
+        p1 = Processor1()
+        t1 = Task(
+            kind='Processor1',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                }
+            },
+            logger=TestLogger()
+        )
+        expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
+        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
+        self.assertIsNotNone(self.key_value_store)
+        self.assertIsInstance(self.key_value_store, KeyValueStore)
+        self.assertIsNotNone(self.key_value_store.store)
+        self.assertIsInstance(self.key_value_store.store, dict)
+        self.assertEqual(len(self.key_value_store.store), 2)
+        self.assertTrue(expected_key in self.key_value_store.store)
+        self.assertEqual(self.key_value_store.store[expected_key], 2, 'key_value_store={}'.format(self.key_value_store.store))
+        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
+        self.assertTrue(self.key_value_store.store['Processor1:Processed:Success'], 'key_value_store={}'.format(self.key_value_store.store))
 
 
 if __name__ == '__main__':

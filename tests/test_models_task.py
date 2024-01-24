@@ -115,7 +115,8 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
             print(line)
 
     def test_task_basic_init_minimal_1(self):
-        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
+        spec_test_field_name = 'TestField1'
+        t = Task(kind='TestKind', version='v1', spec={spec_test_field_name: 'value1'}, metadata=dict(), logger=self.logger)
         self.assertIsNotNone(t)
         self.assertIsInstance(t, Task)
         self.assertEqual(t.kind, 'TestKind')
@@ -131,6 +132,17 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(task_contexts, list)
         self.assertEqual(len(task_contexts), 1)
         self.assertTrue('default', task_contexts)
+
+        task_metadata = t.metadata
+        self.assertIsNotNone(task_metadata)
+        self.assertIsInstance(task_metadata, dict)
+        self.assertEqual(len(task_metadata), 0)
+
+        task_spec = t.spec
+        self.assertIsNotNone(task_spec)
+        self.assertIsInstance(task_spec, dict)
+        self.assertEqual(len(task_spec), 1)
+        self.assertTrue(spec_test_field_name.lower(), task_spec)
 
 
     def test_task_basic_init_minimal_with_name_1(self):

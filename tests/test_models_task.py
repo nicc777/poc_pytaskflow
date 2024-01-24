@@ -144,6 +144,31 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertEqual(len(task_spec), 1)
         self.assertTrue(spec_test_field_name.lower(), task_spec)
 
+        task_selector_register = t.selector_register
+        self.assertIsNotNone(task_selector_register)
+        self.assertIsInstance(task_selector_register, dict)
+        self.assertEqual(len(task_selector_register), 0)
+
+        task_annotations = t.annotations
+        self.assertIsNotNone(task_annotations)
+        self.assertIsInstance(task_annotations, dict)
+        self.assertEqual(len(task_annotations), 0)
+
+        task_dependencies = t.task_dependencies
+        self.assertIsNotNone(task_dependencies)
+        self.assertIsInstance(task_dependencies, dict)
+        self.assertEqual(len(task_dependencies), 2)
+        self.assertTrue('NamedTasks', task_dependencies)
+        self.assertTrue('Labels', task_dependencies)
+        task_dependencies_named_tasks = task_dependencies['NamedTasks']
+        self.assertIsNotNone(task_dependencies_named_tasks)
+        self.assertIsInstance(task_dependencies_named_tasks, list)
+        self.assertEqual(len(task_dependencies_named_tasks), 0)
+        task_dependencies_labels = task_dependencies['Labels']
+        self.assertIsNotNone(task_dependencies_labels)
+        self.assertIsInstance(task_dependencies_labels, list)
+        self.assertEqual(len(task_dependencies_labels), 0)
+
 
     def test_task_basic_init_minimal_with_name_1(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1'}, logger=self.logger)

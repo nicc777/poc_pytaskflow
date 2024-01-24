@@ -1,5 +1,6 @@
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
 
@@ -285,7 +286,88 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertTrue('name1' in dependencies_names_of_tasks)
         self.assertTrue('name2' in dependencies_names_of_tasks)
 
-        
+
+class Processor1(TaskProcessor):
+
+    def __init__(self):
+        super().__init__(kind='Processor1', kind_versions=['v1'], supported_commands=['command1', 'command2'], logger=TestLogger())
+
+    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
+        self.logger.info('[Processor1]: {}'.format('-'*80))
+        self.logger.info('[Processor1]: Processing task_id "{}"'.format(task.task_id))
+        self.logger.info('[Processor1]:    Task Contexts "{}"'.format(task.task_contexts))
+        self.logger.info('[Processor1]: command="{}"'.format(command))
+        self.logger.info('[Processor1]: context="{}"'.format(context))
+        can_process = True
+        if task.kind != 'Processor1':
+            self.logger.error('[Processor1]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
+            can_process = False
+        if task.version not in self.versions:
+            self.logger.error('[Processor1]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
+            can_process = False
+        self.logger.info('[Processor1]: can_process={}'.format(can_process))
+        key_value_store.save(key='Processor1:Processed:Success', value=can_process)
+        self.logger.info('[Processor1]: {}'.format('='*80))
+        return key_value_store
+
+
+class Processor2(TaskProcessor):
+
+    def __init__(self):
+        super().__init__(kind='Processor2', kind_versions=['v1'], supported_commands=['command2'], logger=TestLogger())
+    
+    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
+        self.logger.info('[Processor2]: {}'.format('-'*80))
+        self.logger.info('[Processor2]: Processing task_id "{}"'.format(task.task_id))
+        self.logger.info('[Processor2]:    Task Contexts "{}"'.format(task.task_contexts))
+        self.logger.info('[Processor2]: command="{}"'.format(command))
+        self.logger.info('[Processor2]: context="{}"'.format(context))
+        can_process = True
+        if task.kind != 'Processor2':
+            self.logger.error('[Processor2]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
+            can_process = False
+        if task.version not in self.versions:
+            self.logger.error('[Processor2]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
+            can_process = False
+        self.logger.info('[Processor2]: can_process={}'.format(can_process))
+        key_value_store.save(key='Processor2:Processed:Success', value=can_process)
+        self.logger.info('[Processor2]: {}'.format('='*80))
+        return key_value_store
+
+
+class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        self.key_value_store = KeyValueStore()
+
+    def test_processor_1_init(self):
+        p1 = Processor1()
+        t1 = Task(
+            kind='Processor1',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                }
+            },
+            logger=TestLogger()
+        )
+        self.key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
+        self.assertIsNotNone(self.key_value_store)
+        self.assertIsInstance(self.key_value_store, KeyValueStore)
+        self.assertIsNotNone(self.key_value_store.store)
+        self.assertIsInstance(self.key_value_store.store, dict)
+        self.assertEqual(len(self.key_value_store.store), 1)
+        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
+        self.assertTrue(self.key_value_store.store['Processor1:Processed:Success'])
+
+        p1_logger = p1.logger
+        self.assertIsNotNone(p1_logger)
+
 
 if __name__ == '__main__':
     unittest.main()

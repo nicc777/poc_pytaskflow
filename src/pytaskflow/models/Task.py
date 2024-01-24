@@ -190,7 +190,7 @@ class TaskProcessor:
             except:
                 global_key_value_store.store[task_run_id] = -1
 
-    def process_task(self, task: Task, command: str, context: str='default'):
+    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
         raise Exception('Not implemented')
 
 

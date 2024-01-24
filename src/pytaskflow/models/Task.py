@@ -199,7 +199,7 @@ class TaskProcessor:
             except:
                 key_value_store.store[task_run_id] = -1
         else:
-            self.logger.warning(message='Appears task was already previously validated or executed')
+            self.logger.warning(message='Appears task was already previously validated and/or executed')
         return key_value_store
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:

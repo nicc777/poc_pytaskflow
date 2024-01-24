@@ -274,15 +274,19 @@ class Tasks:
         ordered_list.append(candidate_task.task_id)
         return ordered_list
 
+    def calculate_current_task_order(self, command: str, context: str)->list:
+        task_order = list()
+        for task_id, task in self.tasks.items():
+            if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
+                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task)
+        return task_order
+
     def process_context(self, command: str, context: str):
         """
             1. Determine the order based on task dependencies
             2. Process tasks in order, with the available task processor registered for this task kind and version
         """
-        task_order = list()
-        for task_id, task in self.tasks.items():
-            if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
-                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task)
+        task_order = self.calculate_current_task_order(command=command, context=context)
 
         for task_id in task_order:
             if task_id in self.tasks:

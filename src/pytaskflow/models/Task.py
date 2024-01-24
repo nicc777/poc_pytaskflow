@@ -123,13 +123,13 @@ class Task:
         if 'annotations' in self.metadata:
             if isinstance(self.metadata['annotations'], dict):
                 for key, val in self.metadata['annotations'].items():
-                    if key != 'dependency/name' and not key != 'contexts' and not key.startswith('dependency/label/'):
-                        self.annotations[key] = '{}'.format(val)
-                    elif key.startswith('contexts'):
+                    if key == 'contexts':
                         for item in '{}'.format(val).replace(' ', '').split(','):
                             if 'default' in self.task_contexts and len(self.task_contexts) == 1 and item != 'default':
                                 self.task_contexts = list()
                             self.task_contexts.append(item)
+                    elif key.startswith('dependency/label') is False and key.startswith('dependency/name') is False:
+                        self.annotations[key] = '{}'.format(val)
 
     def _register_dependencies(self):
         if 'annotations' in self.metadata:

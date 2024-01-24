@@ -195,6 +195,16 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertTrue(match_1)
         self.assertFalse(match_2)
 
+    def test_task_basic_init_minimal_with_no_name_produces_debug_message_when_lookup_by_name_is_done(self):
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
+        match_1 = t.task_match_name(name='test1')
+        self.assertFalse(match_1)
+        log_message_match_found = False
+        for line in self.logger.debug_lines:
+            if 'This task has no name defined and a match can therefore not be made' in line:
+                log_message_match_found = True
+        self.assertTrue(log_message_match_found)
+
     def test_task_basic_init_minimal_with_name_and_labels_1(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1', 'labels': {'label1': 'labelvalue1', 'label2': 'labelvalue2'}}, logger=self.logger)
         self.assertIsNotNone(t)
@@ -216,6 +226,65 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertFalse(match_2b)
         self.assertFalse(match_2c)
         self.assertFalse(match_2d)
+
+    def test_task_basic_init_minimal_with_annotations_1(self):
+        custom_annotation_value = 'customvalue1'
+        custom_annotation_name = 'thirdparty/annotation/name1'
+        t = Task(
+            kind='TestKind',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                    'dependency/name': 'name1,name2',
+                    'dependency/label/labelname1': 'labelvalue1',
+                    custom_annotation_name: custom_annotation_value,
+                }
+            },
+            logger=self.logger
+        )
+
+        custom_annotations = t.annotations
+        self.assertIsNotNone(custom_annotations)
+        self.assertIsInstance(custom_annotations, dict)
+        self.assertEqual(len(custom_annotations), 1, 'custom_annotations: {}'.format(custom_annotations))
+        self.assertTrue(custom_annotation_name in custom_annotations)
+        self.assertEqual(custom_annotations[custom_annotation_name], custom_annotation_value)
+
+        contexts = t.task_contexts
+        self.assertIsNotNone(contexts)
+        self.assertIsInstance(contexts, list)
+        self.assertEqual(len(contexts), 2, 'contexts: {}'.format(contexts))
+        self.assertTrue('c1' in contexts)
+        self.assertTrue('c2' in contexts)
+
+        dependencies = t.task_dependencies
+        self.assertIsNotNone(dependencies)
+        self.assertIsInstance(dependencies, dict)
+        self.assertEqual(len(dependencies), 2, 'dependencies: {}'.format(dependencies))
+        self.assertTrue('NamedTasks' in dependencies)
+        self.assertTrue('Labels' in dependencies)
+        
+        dependencies_labels = dependencies['Labels']
+        self.assertIsNotNone(dependencies_labels)
+        self.assertIsInstance(dependencies_labels, list)
+        self.assertEqual(len(dependencies_labels), 1, 'dependencies_labels: {}'.format(dependencies_labels))
+        dependency_label_1 = dependencies_labels[0]
+        self.assertIsNotNone(dependency_label_1)
+        self.assertIsInstance(dependency_label_1, dict)
+        self.assertEqual(len(dependency_label_1), 1, 'dependency_label_1: {}'.format(dependency_label_1))
+        self.assertTrue('dependency/label/labelname1' in dependency_label_1, 'dependency_label_1: {}'.format(dependency_label_1))
+        self.assertEqual(dependency_label_1['dependency/label/labelname1'], 'labelvalue1')
+
+        dependencies_names_of_tasks = dependencies['NamedTasks']
+        self.assertIsNotNone(dependencies_names_of_tasks)
+        self.assertIsInstance(dependencies_names_of_tasks, list)
+        self.assertEqual(len(dependencies_names_of_tasks), 2, 'dependencies_names_of_tasks: {}'.format(dependencies_names_of_tasks))
+        self.assertTrue('name1' in dependencies_names_of_tasks)
+        self.assertTrue('name2' in dependencies_names_of_tasks)
+
         
 
 if __name__ == '__main__':

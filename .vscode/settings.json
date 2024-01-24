@@ -1,7 +1,10 @@
 {
     "cSpell.words": [
+        "customvalue",
+        "labelname",
         "labelvalue",
-        "pytaskflow"
+        "pytaskflow",
+        "thirdparty"
     ],
     "python.testing.unittestArgs": [
         "-v",

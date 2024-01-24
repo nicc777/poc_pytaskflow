@@ -22,9 +22,6 @@ class KeyValueStore:
         self.store[key] = value
 
 
-global_key_value_store = KeyValueStore()
-
-
 class LoggerWrapper:    # pragma: no cover
 
     def __init__(self):
@@ -184,35 +181,39 @@ class TaskProcessor:
         key_value_store: KeyValueStore=KeyValueStore(),
         call_process_task_if_check_pass: bool=False
     )->KeyValueStore:
+        """
+        Checks if the task can be run.
+        """
         task_run_id = 'PROCESSING_TASK:{}:{}:{}'.format(
             task.task_id,
             command,
             context
         )
-        if task_run_id not in global_key_value_store.store:
+        if task_run_id not in key_value_store.store:
             key_value_store.save(key=task_run_id, value=1)
         if key_value_store.store[task_run_id] == 1:
             try:
                 if call_process_task_if_check_pass is True:
                     key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store)
                     key_value_store.store[task_run_id] = 2
-            except:
+            except: # pragma: no cover
                 key_value_store.store[task_run_id] = -1
         else:
             self.logger.warning(message='Appears task was already previously validated and/or executed')
         return key_value_store
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
-        raise Exception('Not implemented')
+        raise Exception('Not implemented')  # pragma: no cover
 
 
 class Tasks:
 
-    def __init__(self, logger: LoggerWrapper=LoggerWrapper()):
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore()):
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()
+        self.key_value_store = key_value_store
 
     def add_task(self, task: Task):
         processor_id = '{}:{}'.format(task.kind, task.version)
@@ -292,5 +293,5 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
-                            target_task_processor_executor.task_pre_processing_registration_check(task=task, command=command, context=context, global_key_Value_store=global_key_value_store)
+                            target_task_processor_executor.task_pre_processing_registration_check(task=task, command=command, context=context, key_value_store=self.key_value_store)
 

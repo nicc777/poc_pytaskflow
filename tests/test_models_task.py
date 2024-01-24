@@ -83,6 +83,7 @@ class TestObjectInstanceGlobalKeyValueStore(unittest.TestCase):    # pragma: no 
         print('-'*80)
 
     def test_global_key_value_store_basic(self):
+        global_key_value_store = KeyValueStore()
         self.assertIsInstance(global_key_value_store, KeyValueStore)
         global_key_value_store.save(key='test_key_1', value='test_value')
         global_key_value_store.save(key='test_key_2', value=123)
@@ -306,7 +307,7 @@ class Processor1(TaskProcessor):
             self.logger.error('[Processor1]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
         self.logger.info('[Processor1]: can_process={}'.format(can_process))
-        key_value_store.save(key='Processor1:Processed:Success', value=can_process)
+        key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
         self.logger.info('[Processor1]: {}'.format('='*80))
         return key_value_store
 
@@ -330,7 +331,7 @@ class Processor2(TaskProcessor):
             self.logger.error('[Processor2]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
         self.logger.info('[Processor2]: can_process={}'.format(can_process))
-        key_value_store.save(key='Processor2:Processed:Success', value=can_process)
+        key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
         self.logger.info('[Processor2]: {}'.format('='*80))
         return key_value_store
 
@@ -362,8 +363,8 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(self.key_value_store.store)
         self.assertIsInstance(self.key_value_store.store, dict)
         self.assertEqual(len(self.key_value_store.store), 1)
-        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
-        self.assertTrue(self.key_value_store.store['Processor1:Processed:Success'])
+        self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in self.key_value_store.store)
+        self.assertTrue(self.key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)])
 
         p1_logger = p1.logger
         self.assertIsNotNone(p1_logger)
@@ -389,8 +390,8 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(self.key_value_store.store)
         self.assertIsInstance(self.key_value_store.store, dict)
         self.assertEqual(len(self.key_value_store.store), 1)
-        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
-        self.assertFalse(self.key_value_store.store['Processor1:Processed:Success'])
+        self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in self.key_value_store.store)
+        self.assertFalse(self.key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)])
 
         p1_logger = p1.logger
         self.assertIsNotNone(p1_logger)
@@ -443,8 +444,22 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertEqual(len(self.key_value_store.store), 2)
         self.assertTrue(expected_key in self.key_value_store.store)
         self.assertEqual(self.key_value_store.store[expected_key], 2, 'key_value_store={}'.format(self.key_value_store.store))
-        self.assertTrue('Processor1:Processed:Success' in self.key_value_store.store)
-        self.assertTrue(self.key_value_store.store['Processor1:Processed:Success'], 'key_value_store={}'.format(self.key_value_store.store))
+        self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in self.key_value_store.store)
+        self.assertTrue(self.key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(self.key_value_store.store))
+
+        self.key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
+        self.assertIsNotNone(self.key_value_store)
+        self.assertIsInstance(self.key_value_store, KeyValueStore)
+        self.assertIsNotNone(self.key_value_store.store)
+        self.assertIsInstance(self.key_value_store.store, dict)
+        self.assertEqual(len(self.key_value_store.store), 2)
+        self.assertTrue(expected_key in self.key_value_store.store)
+        self.assertEqual(self.key_value_store.store[expected_key], 2, 'key_value_store={}'.format(self.key_value_store.store))
+        self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in self.key_value_store.store)
+        self.assertTrue(self.key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(self.key_value_store.store))
+
+        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
+        self.assertTrue('[LOG] WARNING: Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
 
 
 if __name__ == '__main__':

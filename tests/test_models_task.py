@@ -126,6 +126,13 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
                 match_found = True
         self.assertTrue(match_found)
 
+        task_contexts = t.task_contexts
+        self.assertIsNotNone(task_contexts)
+        self.assertIsInstance(task_contexts, list)
+        self.assertEqual(len(task_contexts), 1)
+        self.assertTrue('default', task_contexts)
+
+
     def test_task_basic_init_minimal_with_name_1(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1'}, logger=self.logger)
         self.assertIsNotNone(t)

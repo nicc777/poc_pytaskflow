@@ -131,7 +131,7 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(task_contexts)
         self.assertIsInstance(task_contexts, list)
         self.assertEqual(len(task_contexts), 1)
-        self.assertTrue('default', task_contexts)
+        self.assertTrue('default' in task_contexts)
 
         task_metadata = t.metadata
         self.assertIsNotNone(task_metadata)
@@ -142,7 +142,7 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(task_spec)
         self.assertIsInstance(task_spec, dict)
         self.assertEqual(len(task_spec), 1)
-        self.assertTrue(spec_test_field_name.lower(), task_spec)
+        self.assertTrue(spec_test_field_name.lower() in task_spec)
 
         task_selector_register = t.selector_register
         self.assertIsNotNone(task_selector_register)
@@ -158,8 +158,8 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(task_dependencies)
         self.assertIsInstance(task_dependencies, dict)
         self.assertEqual(len(task_dependencies), 2)
-        self.assertTrue('NamedTasks', task_dependencies)
-        self.assertTrue('Labels', task_dependencies)
+        self.assertTrue('NamedTasks' in task_dependencies)
+        self.assertTrue('Labels' in task_dependencies)
         task_dependencies_named_tasks = task_dependencies['NamedTasks']
         self.assertIsNotNone(task_dependencies_named_tasks)
         self.assertIsInstance(task_dependencies_named_tasks, list)
@@ -169,6 +169,13 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(task_dependencies_labels, list)
         self.assertEqual(len(task_dependencies_labels), 0)
 
+        data = dict(t)
+        self.assertIsNotNone(data)
+        self.assertIsInstance(data, dict)
+        self.assertEqual(len(data), 3)
+        self.assertTrue('kind' in data)
+        self.assertTrue('version' in data)
+        self.assertTrue('spec' in data)
 
     def test_task_basic_init_minimal_with_name_1(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1'}, logger=self.logger)

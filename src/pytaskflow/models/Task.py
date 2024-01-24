@@ -166,6 +166,10 @@ class Task:
             return hashlib.sha256(selector_register_json.encode('utf-8')).hexdigest()
         else:
             return copy.deepcopy(self.task_checksum)
+        
+    def __iter__(self):
+        for k,v in self.task_as_dict.items():
+            yield (k, v)
 
 
 class TaskProcessor:

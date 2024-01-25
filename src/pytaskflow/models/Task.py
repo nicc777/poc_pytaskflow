@@ -257,12 +257,16 @@ class Tasks:
 
     def _order_tasks(self, ordered_list: list, candidate_task: Task)->list:
         if candidate_task.task_id in ordered_list:
+            self.logger.debug('_order_tasks(): Task "{}" already in ordered list.'.format(candidate_task.task_id))
             return ordered_list # Already seen...        
         for dependant_task_name in candidate_task.task_dependencies['NamedTasks']:
             dependant_task = self.find_task_by_name(name=dependant_task_name)
             if dependant_task is not None:
+                self.logger.debug('_order_tasks(): Task "{}" has dependant task named "{}" with task_id "{}"'.format(candidate_task.task_id, dependant_task_name, dependant_task.task_id))
                 if isinstance(dependant_task, Task):
                     ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
+            else:
+                self.logger.warning('_order_tasks(): Task "{}" has dependant task named "{}" which could NOT be found'.format(candidate_task.task_id, dependant_task_name))
         for dependant_task_label in candidate_task.task_dependencies['Labels']:
             label_key = list(dependant_task_label.keys())[0]
             label_value = dependant_task_label[label_key]
@@ -277,6 +281,7 @@ class Tasks:
     def calculate_current_task_order(self, command: str, context: str)->list:
         task_order = list()
         for task_id, task in self.tasks.items():
+            self.logger.debug('calculate_current_task_order(): Considering task "{}"'.format(task.task_id))
             if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
                 task_order = self._order_tasks(ordered_list=task_order, candidate_task=task)
         return task_order

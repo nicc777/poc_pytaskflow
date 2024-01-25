@@ -397,7 +397,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(p1_logger)
         self.assertTrue('[LOG] INFO: [Processor1]: can_process=False' in p1.logger.info_lines, 'info_lines={}'.format(p1.logger.info_lines))
 
-    def test_method_task_pre_processing_registration_check_with_valid_task_1(self):
+    def test_method_task_pre_processing_check_with_valid_task_1(self):
         p1 = Processor1()
         t1 = Task(
             kind='Processor2',  # !!!
@@ -412,7 +412,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             logger=TestLogger()
         )
         expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
-        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
+        self.key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store)
         self.assertIsNotNone(self.key_value_store)
         self.assertIsInstance(self.key_value_store, KeyValueStore)
         self.assertIsNotNone(self.key_value_store.store)
@@ -421,7 +421,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertTrue(expected_key in self.key_value_store.store)
         self.assertEqual(self.key_value_store.store[expected_key], 1)
 
-    def test_method_task_pre_processing_registration_check_with_valid_task_and_execute_1(self):
+    def test_method_task_pre_processing_check_with_valid_task_and_execute_1(self):
         p1 = Processor1()
         t1 = Task(
             kind='Processor1',
@@ -436,7 +436,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             logger=TestLogger()
         )
         expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
-        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
+        self.key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
         self.assertIsNotNone(self.key_value_store)
         self.assertIsInstance(self.key_value_store, KeyValueStore)
         self.assertIsNotNone(self.key_value_store.store)
@@ -458,7 +458,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in self.key_value_store.store)
         self.assertTrue(self.key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(self.key_value_store.store))
 
-        self.key_value_store = p1.task_pre_processing_registration_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
+        self.key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
         self.assertTrue('[LOG] WARNING: Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
 
 

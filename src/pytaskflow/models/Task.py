@@ -173,7 +173,7 @@ class TaskProcessor:
         self.versions = kind_versions
         self.supported_commands = supported_commands
 
-    def task_pre_processing_registration_check(
+    def task_pre_processing_check(
         self,
         task: Task,
         command: str,
@@ -297,5 +297,5 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
-                            target_task_processor_executor.task_pre_processing_registration_check(task=task, command=command, context=context, key_value_store=self.key_value_store)
+                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
 

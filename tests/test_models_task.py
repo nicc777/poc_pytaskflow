@@ -21,24 +21,43 @@ class TestLogger(LoggerWrapper):
         self.debug_lines = list()
         self.critical_lines = list()
         self.error_lines = list()
+        self.all_lines_in_sequence = list()
 
     def info(self, message: str):
         self.info_lines.append('[LOG] INFO: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.info_lines[-1])
+        )
 
     def warn(self, message: str):
         self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.warn_lines[-1])
+        )
 
     def warning(self, message: str):
         self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.warn_lines[-1])
+        )
 
     def debug(self, message: str):
         self.debug_lines.append('[LOG] DEBUG: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.debug_lines[-1])
+        )
 
     def critical(self, message: str):
         self.critical_lines.append('[LOG] CRITICAL: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.critical_lines[-1])
+        )
 
     def error(self, message: str):
         self.error_lines.append('[LOG] ERROR: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.error_lines[-1])
+        )
 
     def reset(self):
         self.info_lines = list()
@@ -460,6 +479,44 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
 
         self.key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
         self.assertTrue('[LOG] WARNING: Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
+
+
+class TestClassTaskS(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        self.key_value_store = KeyValueStore()
+
+    def test_tasks_basic_single_task_1(self):
+        key_value_store = KeyValueStore()
+        logger = TestLogger()
+        tasks = Tasks(logger=logger, key_value_store=key_value_store)
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test1',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                    }
+                },
+                logger=logger
+            )
+        )
+        tasks.process_context(command='command1', context='c1')
+        self.assertIsNotNone(key_value_store)
+        self.assertIsInstance(key_value_store, KeyValueStore)
+        self.assertEqual(len(key_value_store.store), 2, 'key_value_store={}'.format(key_value_store.store))
+        self.assertTrue(len(logger.info_lines) > 0)
+        self.assertTrue(len(logger.error_lines) == 0)
+        self.assertTrue(len(logger.critical_lines) == 0)
+        for line in logger.all_lines_in_sequence:
+            print(line)
 
 
 if __name__ == '__main__':

@@ -287,6 +287,7 @@ class Tasks:
             2. Process tasks in order, with the available task processor registered for this task kind and version
         """
         task_order = self.calculate_current_task_order(command=command, context=context)
+        self.logger.debug('task_order={}'.format(task_order))
 
         for task_id in task_order:
             if task_id in self.tasks:
@@ -298,4 +299,3 @@ class Tasks:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
                             self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
-

@@ -553,10 +553,10 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
                 logger=logger
             )
         )
-        tasks.process_context(command='command1', context='c1')
+        tasks.process_context(command='command2', context='c1')
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
-        self.assertEqual(len(key_value_store.store), 2, 'key_value_store={}'.format(key_value_store.store))
+        self.assertEqual(len(key_value_store.store), 4, 'key_value_store={}'.format(key_value_store.store))
         self.assertTrue(len(logger.info_lines) > 0)
         self.assertTrue(len(logger.error_lines) == 0)
         self.assertTrue(len(logger.critical_lines) == 0)

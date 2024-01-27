@@ -47,6 +47,68 @@ class LoggerWrapper:    # pragma: no cover
         self.info(message=message)
 
 
+class TaskLifecycleStage:
+    TASK_PRE_REGISTER                       = 1
+    TASK_PRE_REGISTER_ERROR                 = -1
+    TASK_REGISTERED                         = 2
+    TASK_REGISTERED_ERROR                   = -2
+    TASK_PRE_PROCESSING_START               = 3
+    TASK_PRE_PROCESSING_START_ERROR         = -3
+    TASK_PRE_PROCESSING_COMPLETED           = 4
+    TASK_PRE_PROCESSING_COMPLETED_ERROR     = -4
+    TASK_PROCESSING_PRE_START               = 5
+    TASK_PROCESSING_PRE_START_ERROR         = -5
+    TASK_PROCESSING_POST_DONE               = 6
+    TASK_PROCESSING_POST_DONE_ERROR         = -6
+
+
+class TaskLifecycleStages:
+
+    def __init__(self):
+        self.stages = list()
+
+    def register_lifecycle_stage(self, task_life_cycle_stage: int):
+        if task_life_cycle_stage not in self.stages:
+            self.stages.append(task_life_cycle_stage)
+
+    def stage_registered(self, stage: int)->bool:
+        if stage in self.stages:
+            return True
+        return False
+
+
+class Hook:
+
+    def __init__(
+            self,
+            name: str,
+            commands: list,
+            contexts: list,
+            task_life_cycle_stages: TaskLifecycleStages,
+            function_impl: object,  # callable object, like a function
+            logger: LoggerWrapper=LoggerWrapper()
+        ):
+        self.name = name
+        self.logger = logger
+        self.commands = commands
+        self.contexts = contexts
+        self.task_life_cycle_stages = task_life_cycle_stages
+        self.function_impl = function_impl
+
+    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore)->KeyValueStore:
+        if command not in self.commands or context not in self.contexts or self.task_life_cycle_stages.stage_registered(stage=task_life_cycle_stage) is False:
+            return key_value_store
+        try:
+            pass
+        except:
+            self.logger.error(
+                'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
+                    self.name,
+                    
+                )
+            )
+
+
 class Task:
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict(), logger: LoggerWrapper=LoggerWrapper()):

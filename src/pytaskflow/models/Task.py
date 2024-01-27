@@ -95,18 +95,90 @@ class Hook:
         self.task_life_cycle_stages = task_life_cycle_stages
         self.function_impl = function_impl
 
-    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore)->KeyValueStore:
+    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict())->KeyValueStore:
         if command not in self.commands or context not in self.contexts or self.task_life_cycle_stages.stage_registered(stage=task_life_cycle_stage) is False:
             return key_value_store
         try:
-            pass
+            self.logger.debug(
+                'Hook "{}" executed on stage "{}" for task "{}" for command "{}" in context "{}"'.format(
+                    self.name,
+                    task_life_cycle_stage,
+                    task_id,
+                    command,
+                    context
+                )
+            )
+            result = self.function_impl(
+                hook_name=self.name,
+                task=task,
+                key_value_store=key_value_store,
+                command=command,
+                context=context,
+                task_life_cycle_stage=task_life_cycle_stage,
+                extra_parameters=extra_parameters,
+                logger=self.logger
+            )
+            if result is not None:
+                if isinstance(result, KeyValueStore):
+                    key_value_store = copy.deepcopy(result)
         except:
             self.logger.error(
                 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
                     self.name,
-                    
+
                 )
             )
+        return key_value_store
+
+
+class Hooks:
+
+    def __init__(self):
+        self.hooks = dict()
+        self.hook_registrar = dict()
+
+    def register_hook(self, hook: Hook):
+        if hook.name not in self.hook_registrar:
+            self.hook_registrar[hook.name] = hook
+        for context in hook.contexts:
+            if context not in self.hooks:
+                self.hooks[context] = dict()
+            for command in hook.commands:
+                if command not in self.hooks[context]:
+                    self.hooks[context][command] = dict()
+                if hook.name not in self.hooks[context][command]:
+                    self.hooks[context][command][hook.name] = list()
+                for stage in hook.task_life_cycle_stages.stages:
+                    if stage not in self.hooks[context][command][hook.name]:
+                        self.hooks[context][command][hook.name].append(stage)
+
+    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict(), logger: LoggerWrapper=LoggerWrapper())->KeyValueStore:
+        if context in self.hooks:
+            if command in self.hooks[context]:
+                for hook_name, stages in self.hooks[context][command].items():
+                    if hook_name in self.hook_registrar and task_life_cycle_stage in stages:
+                        result = self.hook_registrar[hook_name].process_hook(
+                            command=command,
+                            context=context,
+                            task_life_cycle_stage=task_life_cycle_stage,
+                            key_value_store=key_value_store,
+                            task=task,
+                            task_id=task_id,
+                            extra_parameters=extra_parameters,
+                            logger=logger
+                        )
+                        if result is not None:
+                            if isinstance(result, KeyValueStore):
+                                key_value_store = copy.deepcopy(result)
+        return key_value_store
+    
+    def any_hook_exists(self, command: str, context: str, task_life_cycle_stage: int)->bool:
+        if context in self.hooks:
+            if command in self.hooks[context]:
+                for hook_name, life_cycles in self.hooks[context][command].items():
+                    if task_life_cycle_stage in life_cycles:
+                        return True
+        return False
 
 
 class Task:
@@ -268,20 +340,111 @@ class TaskProcessor:
         raise Exception('Not implemented')  # pragma: no cover
 
 
+def hook_function_always_throw_exception(
+    hook_name:str,
+    task:Task,
+    key_value_store:KeyValueStore,
+    command:str,
+    context:str,
+    task_life_cycle_stage:int,
+    extra_parameters:dict,
+    logger:LoggerWrapper
+):
+    task_id = 'unknown'
+    if task is not None:
+        if isinstance(task, Task):
+            task_id = task.task_id
+    exception_message = 'Hook "{}" forced exception on command "{}" in context "{}" for life stage "{}" in task "{}"'.format(
+        hook_name,
+        command,
+        context,
+        task_life_cycle_stage,
+        task_id
+    )
+    if 'ExceptionMessage' in extra_parameters:
+        logger.error(exception_message)
+        exception_message = extra_parameters['ExceptionMessage']
+    raise Exception(exception_message)
+
+
 class Tasks:
 
-    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore()):
+    """
+        TASK_PRE_REGISTER                       = 1
+        TASK_PRE_REGISTER_ERROR                 = -1
+        TASK_REGISTERED                         = 2
+        TASK_REGISTERED_ERROR                   = -2
+        TASK_PRE_PROCESSING_START               = 3
+        TASK_PRE_PROCESSING_START_ERROR         = -3
+        TASK_PRE_PROCESSING_COMPLETED           = 4
+        TASK_PRE_PROCESSING_COMPLETED_ERROR     = -4
+        TASK_PROCESSING_PRE_START               = 5
+        TASK_PROCESSING_PRE_START_ERROR         = -5
+        TASK_PROCESSING_POST_DONE               = 6
+        TASK_PROCESSING_POST_DONE_ERROR         = -6
+    """
+
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks()):
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()
         self.key_value_store = key_value_store
+        self.hooks = hooks
+        self._register_task_registration_failure_exception_throwing_hook()
+
+    def _register_task_registration_failure_exception_throwing_hook(self):
+        if self.hooks.any_hook_exists(command='', context='', task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR) is False:
+            self.hooks.register_hook(
+                hook=Hook(
+                    name='',
+                    commands=['NOT_APPLICABLE',],
+                    contexts=['ALL',],
+                    task_life_cycle_stages=TaskLifecycleStage.TASK_REGISTERED_ERROR,
+                    function_impl=hook_function_always_throw_exception,
+                    logger=self.logger
+                )
+            )
 
     def add_task(self, task: Task):
+        self.key_value_store = self.hooks.process_hook(
+            command='NOT_APPLICABLE',
+            context='ALL',
+            task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_REGISTER,
+            key_value_store=copy.deepcopy(self.key_value_store),
+            task=task,
+            task_id=task.task_id
+        )
         processor_id = '{}:{}'.format(task.kind, task.version)
         if processor_id not in self.task_processor_register:
-            raise Exception('Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version))
+            self.key_value_store = self.hooks.process_hook(
+                command='NOT_APPLICABLE',
+                context='ALL',
+                task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
+                key_value_store=copy.deepcopy(self.key_value_store),
+                task=task,
+                task_id=task.task_id
+            )
+            #raise Exception('Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version))
+            self.hooks.process_hook(
+                command='NOT_APPLICABLE',
+                context='ALL',
+                task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
+                key_value_store=self.key_value_store,
+                task=task,
+                task_id='N/A',
+                extra_parameters='Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version),
+                logger=self.logger
+            )
         self.tasks[task.task_id] = task
+        self.key_value_store = self.hooks.process_hook(
+            command='NOT_APPLICABLE',
+            context='ALL',
+            task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
+            key_value_store=copy.deepcopy(self.key_value_store),
+            task=task,
+            task_id=task.task_id
+        )
 
     def register_task_processor(self, processor: TaskProcessor):
         if isinstance(processor.versions, list):

@@ -64,8 +64,12 @@ class TaskLifecycleStage:
 
 class TaskLifecycleStages:
 
-    def __init__(self):
+    def __init__(self, init_default_stages: bool=True):
         self.stages = list()
+        if init_default_stages is True:
+            for i in range(1,7):
+                self.stages.append(i)
+                self.stages.append(i*-1)
 
     def register_lifecycle_stage(self, task_life_cycle_stage: int):
         if task_life_cycle_stage not in self.stages:
@@ -95,7 +99,7 @@ class Hook:
         self.task_life_cycle_stages = task_life_cycle_stages
         self.function_impl = function_impl
 
-    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict())->KeyValueStore:
+    def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict(), logger: LoggerWrapper=LoggerWrapper())->KeyValueStore:
         if command not in self.commands or context not in self.contexts or self.task_life_cycle_stages.stage_registered(stage=task_life_cycle_stage) is False:
             return key_value_store
         try:
@@ -125,7 +129,9 @@ class Hook:
             self.logger.error(
                 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
                     self.name,
-
+                    command,
+                    context,
+                    task_life_cycle_stage
                 )
             )
         return key_value_store
@@ -384,23 +390,24 @@ class Tasks:
         TASK_PROCESSING_POST_DONE_ERROR         = -6
     """
 
-    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks()):
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), task_life_cycle_stages: TaskLifecycleStages=TaskLifecycleStages()):
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()
         self.key_value_store = key_value_store
         self.hooks = hooks
+        self.task_life_cycle_stages = task_life_cycle_stages
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
-        if self.hooks.any_hook_exists(command='', context='', task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR) is False:
+        if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR) is False:
             self.hooks.register_hook(
                 hook=Hook(
                     name='',
                     commands=['NOT_APPLICABLE',],
                     contexts=['ALL',],
-                    task_life_cycle_stages=TaskLifecycleStage.TASK_REGISTERED_ERROR,
+                    task_life_cycle_stages=self.task_life_cycle_stages,
                     function_impl=hook_function_always_throw_exception,
                     logger=self.logger
                 )

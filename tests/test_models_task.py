@@ -613,6 +613,10 @@ class TestClassTaskLifecycleStages(unittest.TestCase):    # pragma: no cover
         task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR)
         self.assertEqual(len(task_life_cycle_stages.stages), 2)
 
+        self.assertTrue(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_REGISTERED))
+        self.assertTrue(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_REGISTERED_ERROR))
+        self.assertFalse(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED))
+
 
 if __name__ == '__main__':
     unittest.main()

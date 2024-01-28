@@ -519,9 +519,7 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
             print(line)
 
     def test_tasks_basic_dependant_tasks_1(self):
-        key_value_store = KeyValueStore()
-        logger = TestLogger()
-        tasks = Tasks(logger=logger, key_value_store=key_value_store)
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())
         tasks.register_task_processor(processor=Processor2())
         tasks.add_task(
@@ -536,7 +534,7 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
                         'dependency/name': 'test1',
                     }
                 },
-                logger=logger
+                logger=tasks.logger
             )
         )
         tasks.add_task(
@@ -550,9 +548,14 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
                         'contexts': 'c1,c2',
                     }
                 },
-                logger=logger
+                logger=tasks.logger
             )
         )
+
+        key_value_store = tasks.key_value_store
+        logger = tasks.logger
+
+
         tasks.process_context(command='command2', context='c1')
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)

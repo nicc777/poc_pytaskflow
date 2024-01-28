@@ -1,6 +1,6 @@
 | Name                                  |    Stmts |     Miss |   Cover |
 |-------------------------------------- | -------: | -------: | ------: |
 | src/pytaskflow/\_\_init\_\_.py        |        0 |        0 |    100% |
-| src/pytaskflow/models/Task.py         |      323 |       48 |     85% |
+| src/pytaskflow/models/Task.py         |      323 |       47 |     85% |
 | src/pytaskflow/models/\_\_init\_\_.py |        0 |        0 |    100% |
-|                             **TOTAL** |  **323** |   **48** | **85%** |
+|                             **TOTAL** |  **323** |   **47** | **85%** |

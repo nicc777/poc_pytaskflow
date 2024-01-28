@@ -581,5 +581,20 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
             print(line)
 
 
+class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_basic_state_persistence_1(self):
+        state_persistence = StatePersistence(logger=TestLogger(), configuration=dict())
+        state_persistence.save_object_state(object_identifier='test1', data={'key1': 'value1'})
+        state_persistence.persist_all_state()
+        object_data = state_persistence.get_object_state(object_identifier='test1')
+        self.assertEqual(object_data['key1'], 'value1')
+        self.assertTrue(len(state_persistence.state_cache), 1)
+
+
 if __name__ == '__main__':
     unittest.main()

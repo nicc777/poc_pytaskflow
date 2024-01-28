@@ -596,5 +596,23 @@ class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
         self.assertTrue(len(state_persistence.state_cache), 1)
 
 
+class TestClassTaskLifecycleStages(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_basic_life_cycles_1(self):
+        task_life_cycle_stages = TaskLifecycleStages()
+        self.assertEqual(len(task_life_cycle_stages.stages), 12)
+
+    def test_basic_life_cycles_2(self):
+        task_life_cycle_stages = TaskLifecycleStages(init_default_stages=False)
+        self.assertEqual(len(task_life_cycle_stages.stages), 0)
+        task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED)
+        task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR)
+        self.assertEqual(len(task_life_cycle_stages.stages), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

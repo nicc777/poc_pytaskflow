@@ -390,24 +390,25 @@ class Tasks:
         TASK_PROCESSING_POST_DONE_ERROR         = -6
     """
 
-    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), task_life_cycle_stages: TaskLifecycleStages=TaskLifecycleStages()):
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks()):
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()
         self.key_value_store = key_value_store
         self.hooks = hooks
-        self.task_life_cycle_stages = task_life_cycle_stages
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
+        required_task_life_cycle_stages = TaskLifecycleStages(init_default_stages=False)
+        required_task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR)
         if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR) is False:
             self.hooks.register_hook(
                 hook=Hook(
-                    name='',
+                    name='DEFAULT_TASK_REGISTERED_ERROR_HOOK',
                     commands=['NOT_APPLICABLE',],
                     contexts=['ALL',],
-                    task_life_cycle_stages=self.task_life_cycle_stages,
+                    task_life_cycle_stages=required_task_life_cycle_stages,
                     function_impl=hook_function_always_throw_exception,
                     logger=self.logger
                 )

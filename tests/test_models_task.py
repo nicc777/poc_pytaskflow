@@ -489,9 +489,7 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
         self.key_value_store = KeyValueStore()
 
     def test_tasks_basic_single_task_1(self):
-        key_value_store = KeyValueStore()
-        logger = TestLogger()
-        tasks = Tasks(logger=logger, key_value_store=key_value_store)
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())
         tasks.register_task_processor(processor=Processor2())
         tasks.add_task(
@@ -505,16 +503,18 @@ class TestClassTaskS(unittest.TestCase):    # pragma: no cover
                         'contexts': 'c1,c2',
                     }
                 },
-                logger=logger
+                logger=tasks.logger
             )
         )
         tasks.process_context(command='command1', context='c1')
+        key_value_store = tasks.key_value_store
+        logger = tasks.logger
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertEqual(len(key_value_store.store), 2, 'key_value_store={}'.format(key_value_store.store))
-        self.assertTrue(len(logger.info_lines) > 0)
-        self.assertTrue(len(logger.error_lines) == 0)
-        self.assertTrue(len(logger.critical_lines) == 0)
+        self.assertTrue(len(logger.info_lines) > 0, 'info_lines={}'.format(logger.info_lines))
+        self.assertTrue(len(logger.error_lines) == 0, 'error_lines={}'.format(logger.error_lines))
+        self.assertTrue(len(logger.critical_lines) == 0, 'critical_lines={}'.format(logger.critical_lines))
         for line in logger.all_lines_in_sequence:
             print(line)
 

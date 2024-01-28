@@ -47,6 +47,30 @@ class LoggerWrapper:    # pragma: no cover
         self.info(message=message)
 
 
+class StatePersistence:
+
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), configuration: dict=dict()):
+        self.logger = logger
+        self.state_cache = self.retrieve_all_state_from_persistence()
+        self.configuration = configuration
+
+    def retrieve_all_state_from_persistence(self)->dict:
+        self.logger.warning(message='StatePersistence.retrieve_all_state_from_persistence() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
+        return dict()
+
+    def get_object_state(self, object_identifier: str)->dict:
+        if object_identifier in self.state_cache:
+            return copy.deepcopy(self.state_cache[object_identifier])
+        return dict()
+
+    def save_object_state(self, object_identifier: str, data: dict):
+        self.state_cache[object_identifier] = copy.deepcopy(data)
+
+    def persist_all_state(self):
+        self.logger.warning(message='StatePersistence.persist_all_state() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
+
+
+
 class TaskLifecycleStage:
     TASK_PRE_REGISTER                       = 1
     TASK_PRE_REGISTER_ERROR                 = -1
@@ -319,7 +343,8 @@ class TaskProcessor:
         command: str,
         context: str='default',
         key_value_store: KeyValueStore=KeyValueStore(),
-        call_process_task_if_check_pass: bool=False
+        call_process_task_if_check_pass: bool=False,
+        state_persistence: StatePersistence=StatePersistence()
     )->KeyValueStore:
         """
         Checks if the task can be run.
@@ -334,7 +359,7 @@ class TaskProcessor:
         if key_value_store.store[task_run_id] == 1:
             try:
                 if call_process_task_if_check_pass is True:
-                    key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store)
+                    key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store, state_persistence=state_persistence)
                     key_value_store.store[task_run_id] = 2
             except: # pragma: no cover
                 key_value_store.store[task_run_id] = -1
@@ -342,7 +367,7 @@ class TaskProcessor:
             self.logger.warning(message='Appears task was already previously validated and/or executed')
         return key_value_store
 
-    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore())->KeyValueStore:
+    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         raise Exception('Not implemented')  # pragma: no cover
 
 
@@ -390,13 +415,15 @@ class Tasks:
         TASK_PROCESSING_POST_DONE_ERROR         = -6
     """
 
-    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks()):
+    def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), state_persistence: StatePersistence=StatePersistence()):
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
         self.task_processor_register = dict()
         self.key_value_store = key_value_store
         self.hooks = hooks
+        self.state_persistence = state_persistence
+        self.state_persistence.retrieve_all_state_from_persistence()
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
@@ -536,4 +563,5 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):
-                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True)
+                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True, state_persistence=self.state_persistence)
+                            self.state_persistence.persist_all_state()

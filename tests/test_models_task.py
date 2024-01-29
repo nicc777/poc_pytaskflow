@@ -67,6 +67,11 @@ class TestLogger(LoggerWrapper):
         self.error_lines = list()
 
 
+def print_logger_lines(logger:LoggerWrapper):
+    for line in logger.all_lines_in_sequence:
+        print(line)
+
+
 class TestFunctionKeysToLower(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
@@ -616,6 +621,106 @@ class TestClassTaskLifecycleStages(unittest.TestCase):    # pragma: no cover
         self.assertTrue(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_REGISTERED))
         self.assertTrue(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_REGISTERED_ERROR))
         self.assertFalse(task_life_cycle_stages.stage_registered(stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED))
+
+
+def hook_function_test_1(
+    hook_name:str,
+    task:Task,
+    key_value_store:KeyValueStore,
+    command:str,
+    context:str,
+    task_life_cycle_stage:int,
+    extra_parameters:dict,
+    logger:LoggerWrapper
+):
+    logger.info(
+        'Function "hook_function_test_1" called on hook_name "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
+            hook_name,
+            task.task_id,
+            task_life_cycle_stage
+        )
+    )
+    key = '{}:{}:{}:{}:{}'.format(
+        hook_name,
+        task.task_id,
+        command,
+        context,
+        task_life_cycle_stage
+    )
+    key_value_store.save(key=key, value=True)
+    return key_value_store
+
+
+class TestClassHook(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_exec_hook_on_every_lifecycle_stage_1(self):
+        logger = TestLogger()
+
+        hook = Hook(
+            name='test_hook_1',
+            commands=['command1'],
+            contexts=['c1'],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            function_impl=hook_function_test_1,
+            logger=logger
+        )
+
+        t1 = Task(
+            kind='Processor2',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test2',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                    'dependency/name': 'test1',
+                }
+            },
+            logger=logger
+        )
+
+        lifecycle_stages_to_test = (
+            TaskLifecycleStage.TASK_PRE_REGISTER,
+            TaskLifecycleStage.TASK_REGISTERED,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_START,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+            TaskLifecycleStage.TASK_PROCESSING_PRE_START,
+            TaskLifecycleStage.TASK_PROCESSING_POST_DONE,
+        )
+
+        for lifecycle_stage in lifecycle_stages_to_test:
+            result = hook.process_hook(
+                command='command1',
+                context='c1',
+                task_life_cycle_stage=lifecycle_stage,
+                key_value_store=KeyValueStore(),
+                task=t1,
+                task_id=t1.task_id,
+                logger=TestLogger()
+            )
+            expected_log_entry = '[LOG] INFO: Function "hook_function_test_1" called on hook_name "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
+                hook.name,
+                t1.task_id,
+                lifecycle_stage
+            )
+            self.assertTrue(expected_log_entry in logger.info_lines, 'info_lines={}'.format(logger.info_lines))
+
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, KeyValueStore)
+            expected_key = '{}:{}:command1:c1:{}'.format(
+                hook.name,
+                t1.task_id,
+                lifecycle_stage
+            )
+            self.assertTrue(expected_key in result.store)
+            self.assertTrue(result.store[expected_key])
+
+
+        print_logger_lines(logger=logger)
 
 
 if __name__ == '__main__':

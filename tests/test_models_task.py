@@ -831,8 +831,52 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
 
         result = hook.process_hook(
             command='command1',
-            context='c3',
+            context='c1',
             task_life_cycle_stage=9999,   # Mismatch
+            key_value_store=KeyValueStore(),
+            task=t1,
+            task_id=t1.task_id,
+            logger=TestLogger()
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, KeyValueStore)
+        self.assertEqual(len(result.store), 0)
+
+        print_logger_lines(logger=logger)
+
+    def test_exec_hook_handle_function_exception_1(self):
+        logger = TestLogger()
+
+        def f1(*args, **kwargs):
+            raise Exception('I died !!')
+
+        hook = Hook(
+            name='test_hook_1',
+            commands=['command1'],
+            contexts=['c1'],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            function_impl=f1,
+            logger=logger
+        )
+
+        t1 = Task(
+            kind='Processor2',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test2',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                    'dependency/name': 'test1',
+                }
+            },
+            logger=logger
+        )
+
+        result = hook.process_hook(
+            command='command1',
+            context='c1',
+            task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
             key_value_store=KeyValueStore(),
             task=t1,
             task_id=t1.task_id,

@@ -900,8 +900,8 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
 
         hook = Hook(
             name='test_hook_1',
-            commands=['command1'],
-            contexts=['c1'],
+            commands=['NOT_APPLICABLE', 'command1'],
+            contexts=['ALL', 'c1'],
             task_life_cycle_stages=TaskLifecycleStages(),
             function_impl=hook_function_test_1,
             logger=logger
@@ -955,6 +955,63 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             )
             self.assertTrue(expected_key in key_value_store.store)
             self.assertTrue(key_value_store.store[expected_key])
+
+        print_logger_lines(logger=logger)
+
+    def test_ensure_task_processing_covers_all_lifecycle_stages_1(self):
+        logger = TestLogger()
+
+        hook = Hook(
+            name='test_hook_1',
+            commands=['NOT_APPLICABLE', 'command1'],
+            contexts=['ALL', 'c1'],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            function_impl=hook_function_test_1,
+            logger=logger
+        )
+
+        t1 = Task(
+            kind='Processor2',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test2',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                    'dependency/name': 'test1',
+                }
+            },
+            logger=logger
+        )
+
+        hooks = Hooks()
+        hooks.register_hook(hook=hook)
+
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore(), state_persistence=StatePersistence(logger=TestLogger()), hooks=hooks)
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(task=t1)
+        tasks.process_context(command='command1', context='c1')
+
+        lifecycle_stages_to_test = (
+            TaskLifecycleStage.TASK_PRE_REGISTER,
+            TaskLifecycleStage.TASK_REGISTERED,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_START,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+            TaskLifecycleStage.TASK_PROCESSING_PRE_START,
+            TaskLifecycleStage.TASK_PROCESSING_POST_DONE,
+        )
+
+        self.assertIsNotNone(tasks.key_value_store)
+        self.assertIsInstance(tasks.key_value_store, KeyValueStore)
+        for lifecycle_stage in lifecycle_stages_to_test:    
+            expected_key = '{}:{}:command1:c1:{}'.format(
+                hook.name,
+                t1.task_id,
+                lifecycle_stage
+            )
+            self.assertTrue(expected_key in tasks.key_value_store.store, 'FAILURE lifecycle_stage={} :: expected_key "{}" not found'.format(lifecycle_stage, expected_key))
+            self.assertTrue(tasks.key_value_store.store[expected_key], 'FAILURE lifecycle_stage={} :: expected_key "{}" is False'.format(lifecycle_stage, expected_key))
 
         print_logger_lines(logger=logger)
 

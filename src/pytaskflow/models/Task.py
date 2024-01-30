@@ -461,7 +461,7 @@ class Tasks:
                 task_id=task.task_id
             )
             #raise Exception('Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version))
-            self.hooks.process_hook(
+            self.key_value_store = self.hooks.process_hook(
                 command='NOT_APPLICABLE',
                 context='ALL',
                 task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,

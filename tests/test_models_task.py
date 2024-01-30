@@ -889,5 +889,75 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
         print_logger_lines(logger=logger)
 
 
+class TestClassHooks(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_init_basic_1(self):
+        logger = TestLogger()
+
+        hook = Hook(
+            name='test_hook_1',
+            commands=['command1'],
+            contexts=['c1'],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            function_impl=hook_function_test_1,
+            logger=logger
+        )
+
+        t1 = Task(
+            kind='Processor2',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test2',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                    'dependency/name': 'test1',
+                }
+            },
+            logger=logger
+        )
+
+        lifecycle_stages_to_test = (
+            TaskLifecycleStage.TASK_PRE_REGISTER,
+            TaskLifecycleStage.TASK_REGISTERED,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_START,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+            TaskLifecycleStage.TASK_PROCESSING_PRE_START,
+            TaskLifecycleStage.TASK_PROCESSING_POST_DONE,
+        )
+
+        hooks = Hooks()
+        hooks.register_hook(hook=hook)
+        for lifecycle_stage in lifecycle_stages_to_test:
+            result = hooks.any_hook_exists(command='command1', context='c1', task_life_cycle_stage=lifecycle_stage)
+            self.assertTrue(result)
+
+            key_value_store = hooks.process_hook(
+                command='command1',
+                context='c1',
+                task_life_cycle_stage=lifecycle_stage,
+                key_value_store=KeyValueStore(),
+                task=t1,
+                task_id=t1.task_id,
+                logger=logger
+            )
+
+            self.assertIsNotNone(key_value_store)
+            self.assertIsInstance(key_value_store, KeyValueStore)
+            expected_key = '{}:{}:command1:c1:{}'.format(
+                hook.name,
+                t1.task_id,
+                lifecycle_stage
+            )
+            self.assertTrue(expected_key in key_value_store.store)
+            self.assertTrue(key_value_store.store[expected_key])
+
+        print_logger_lines(logger=logger)
+
+
 if __name__ == '__main__':
     unittest.main()

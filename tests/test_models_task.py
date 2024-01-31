@@ -971,14 +971,13 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
         )
 
         t1 = Task(
-            kind='Processor2',
+            kind='Processor1',
             version='v1',
             spec={'field1': 'value1'},
             metadata={
-                'name': 'test2',
+                'name': 'test1',
                 'annotations': {
                     'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
                 }
             },
             logger=logger

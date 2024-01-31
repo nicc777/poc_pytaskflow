@@ -557,11 +557,53 @@ class Tasks:
         for task_id in task_order:
             if task_id in self.tasks:
                 task = self.tasks[task_id]
+
+                self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                    command=command,
+                    context=context,
+                    task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_START,
+                    key_value_store=self.key_value_store,
+                    task=task,
+                    task_id=task_id,
+                    logger=self.logger
+                )
+
                 target_task_processor_id = '{}:{}'.format(task.kind, task.version)
                 if target_task_processor_id in self.task_processor_register:
                     target_task_processor_executor_id = self.task_processor_register[target_task_processor_id]
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
-                        if isinstance(target_task_processor_executor, TaskProcessor):
+                        if isinstance(target_task_processor_executor, TaskProcessor):                            
                             self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True, state_persistence=self.state_persistence)
+
+                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                                command=command,
+                                context=context,
+                                task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+                                key_value_store=self.key_value_store,
+                                task=task,
+                                task_id=task_id,
+                                logger=self.logger
+                            )
+
+                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                                command=command,
+                                context=context,
+                                task_life_cycle_stage=TaskLifecycleStage.TASK_PROCESSING_PRE_START,
+                                key_value_store=self.key_value_store,
+                                task=task,
+                                task_id=task_id,
+                                logger=self.logger
+                            )
+                            
                             self.state_persistence.persist_all_state()
+
+                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                                command=command,
+                                context=context,
+                                task_life_cycle_stage=TaskLifecycleStage.TASK_PROCESSING_POST_DONE,
+                                key_value_store=self.key_value_store,
+                                task=task,
+                                task_id=task_id,
+                                logger=self.logger
+                            )

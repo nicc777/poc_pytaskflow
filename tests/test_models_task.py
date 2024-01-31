@@ -993,9 +993,25 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
         tasks.add_task(task=t1)
         tasks.process_context(command='command1', context='c1')
 
+        print('key_value_store: {}'.format(tasks.key_value_store.store))
+
         lifecycle_stages_to_test = (
             TaskLifecycleStage.TASK_PRE_REGISTER,
             TaskLifecycleStage.TASK_REGISTERED,
+        )
+
+        self.assertIsNotNone(tasks.key_value_store)
+        self.assertIsInstance(tasks.key_value_store, KeyValueStore)
+        for lifecycle_stage in lifecycle_stages_to_test:    
+            expected_key = '{}:{}:NOT_APPLICABLE:ALL:{}'.format(
+                hook.name,
+                t1.task_id,
+                lifecycle_stage
+            )
+            self.assertTrue(expected_key in tasks.key_value_store.store, 'FAILURE lifecycle_stage={} :: expected_key "{}" not found'.format(lifecycle_stage, expected_key))
+            self.assertTrue(tasks.key_value_store.store[expected_key], 'FAILURE lifecycle_stage={} :: expected_key "{}" is False'.format(lifecycle_stage, expected_key))
+
+        lifecycle_stages_to_test = (
             TaskLifecycleStage.TASK_PRE_PROCESSING_START,
             TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
             TaskLifecycleStage.TASK_PROCESSING_PRE_START,

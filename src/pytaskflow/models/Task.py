@@ -148,7 +148,7 @@ class Hook:
             )
             if result is not None:
                 if isinstance(result, KeyValueStore):
-                    key_value_store = copy.deepcopy(result)
+                    key_value_store.store = copy.deepcopy(result.store)
         except:
             self.logger.error(
                 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
@@ -199,7 +199,7 @@ class Hooks:
                         )
                         if result is not None:
                             if isinstance(result, KeyValueStore):
-                                key_value_store = copy.deepcopy(result)
+                                key_value_store.store = copy.deepcopy(result.store)
         return key_value_store
     
     def any_hook_exists(self, command: str, context: str, task_life_cycle_stage: int)->bool:

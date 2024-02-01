@@ -1031,5 +1031,54 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
         print_logger_lines(logger=logger)
 
 
+class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_init_basic_1(self):
+        logger = TestLogger()
+        t1 = Task(
+            kind='Processor1',
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata={
+                'name': 'test1',
+                'annotations': {
+                    'contexts': 'c1,c2',
+                }
+            },
+            logger=logger
+        )
+
+        hook_name = 'test_hook_1'
+        command = 'command1'
+        context = 'c1'
+        life_cycle_stage = TaskLifecycleStage.TASK_PRE_REGISTER
+
+        expected_error_message = 'Hook "{}" forced exception on command "{}" in context "{}" for life stage "{}" in task "{}"'.format(
+            hook_name,
+            command,
+            context,
+            life_cycle_stage,
+            t1.task_id
+        )
+
+        with self.assertRaises(Exception) as cm:
+            hook_function_always_throw_exception(
+                hook_name=hook_name,
+                task=t1,
+                key_value_store=KeyValueStore(),
+                command=command,
+                context=context,
+                task_life_cycle_stage=life_cycle_stage,
+                extra_parameters=dict(),
+                logger=logger
+            )
+
+            self.assertTrue(expected_error_message in cm.exception)
+
+
 if __name__ == '__main__':
     unittest.main()

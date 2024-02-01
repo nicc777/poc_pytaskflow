@@ -150,14 +150,14 @@ class Hook:
                 if isinstance(result, KeyValueStore):
                     key_value_store.store = copy.deepcopy(result.store)
         except:
-            self.logger.error(
-                'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
-                    self.name,
-                    command,
-                    context,
-                    task_life_cycle_stage
-                )
+            exception_message = 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
+                self.name,
+                command,
+                context,
+                task_life_cycle_stage
             )
+            self.logger.error(exception_message)
+            raise Exception(exception_message)
         return key_value_store
 
 
@@ -452,14 +452,14 @@ class Tasks:
         )
         processor_id = '{}:{}'.format(task.kind, task.version)
         if processor_id not in self.task_processor_register:
-            self.key_value_store = self.hooks.process_hook(
-                command='NOT_APPLICABLE',
-                context='ALL',
-                task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
-                key_value_store=copy.deepcopy(self.key_value_store),
-                task=task,
-                task_id=task.task_id
-            )
+            # self.key_value_store = self.hooks.process_hook(
+            #     command='NOT_APPLICABLE',
+            #     context='ALL',
+            #     task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
+            #     key_value_store=copy.deepcopy(self.key_value_store),
+            #     task=task,
+            #     task_id=task.task_id
+            # )
             #raise Exception('Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version))
             self.key_value_store = self.hooks.process_hook(
                 command='NOT_APPLICABLE',

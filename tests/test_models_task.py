@@ -537,6 +537,26 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         for line in logger.all_lines_in_sequence:
             print(line)
 
+    def test_tasks_basic_single_task_with_invalid_processor_1(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore(), state_persistence=StatePersistence(logger=TestLogger()))
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        with self.assertRaises(Exception) as cm:
+            tasks.add_task(
+                task=Task(
+                    kind='Processor3',
+                    version='v1',
+                    spec={'field1': 'value1'},
+                    metadata={
+                        'name': 'test1',
+                        'annotations': {
+                            'contexts': 'c1,c2',
+                        }
+                    },
+                    logger=tasks.logger
+                )
+            )
+
     def test_tasks_basic_dependant_tasks_1(self):
         tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())
@@ -852,7 +872,7 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
 
         hook = Hook(
             name='test_hook_1',
-            commands=['command1'],
+            commands=['command1'],  # INVALID COMMAND...
             contexts=['c1'],
             task_life_cycle_stages=TaskLifecycleStages(),
             function_impl=f1,
@@ -873,18 +893,16 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             logger=logger
         )
 
-        result = hook.process_hook(
-            command='command1',
-            context='c1',
-            task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
-            key_value_store=KeyValueStore(),
-            task=t1,
-            task_id=t1.task_id,
-            logger=TestLogger()
-        )
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, KeyValueStore)
-        self.assertEqual(len(result.store), 0)
+        with self.assertRaises(Exception) as cm:
+            result = hook.process_hook(
+                command='command1',
+                context='c1',
+                task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
+                key_value_store=KeyValueStore(),
+                task=t1,
+                task_id=t1.task_id,
+                logger=TestLogger()
+            )
 
         print_logger_lines(logger=logger)
 

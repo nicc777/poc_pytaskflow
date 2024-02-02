@@ -651,6 +651,26 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         for line in logger.all_lines_in_sequence:
             print(line)
 
+    def test_tasks_task_not_found_returns_none(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test1',
+                    'annotations': {
+                        'contexts': 'c1,c2'
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        self.assertIsNone(tasks.find_task_by_name(name='test2'))
+
 
 class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
 

@@ -604,6 +604,79 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         for line in logger.all_lines_in_sequence:
             print(line)
 
+    def test_tasks_basic_dependant_tasks_2(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test2',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'dependency/label/l1': 'lv1',
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test1',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'labels': {
+                            'l1': 'lv1',
+                            'l2': 'lv2',
+                        }
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+
+        key_value_store = tasks.key_value_store
+        logger = tasks.logger
+
+        tasks.process_context(command='command2', context='c1')
+        self.assertIsNotNone(key_value_store)
+        self.assertIsInstance(key_value_store, KeyValueStore)
+        self.assertEqual(len(key_value_store.store), 4, 'key_value_store={}'.format(key_value_store.store))
+        self.assertTrue(len(logger.info_lines) > 0)
+        self.assertTrue(len(logger.error_lines) == 0)
+        self.assertTrue(len(logger.critical_lines) == 0)
+        for line in logger.all_lines_in_sequence:
+            print(line)
+
+    def test_tasks_basic_dependant_tasks_not_found_throws_exception_1(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test2',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'dependency/name': 'test1',
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        with self.assertRaises(Exception) as cm:
+            tasks.process_context(command='command2', context='c1')
+
     def test_tasks_non_qualifying_task_due_to_context_1(self):
         tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())

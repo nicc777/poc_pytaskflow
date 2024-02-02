@@ -526,7 +526,7 @@ class Tasks:
                 if isinstance(dependant_task, Task):
                     ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
             else:
-                self.logger.warning('_order_tasks(): Task "{}" has dependant task named "{}" which could NOT be found'.format(candidate_task.task_id, dependant_task_name))
+                raise Exception('_order_tasks(): Task "{}" has dependant task named "{}" which could NOT be found'.format(candidate_task.task_id, dependant_task_name))
         for dependant_task_label in candidate_task.task_dependencies['Labels']:
             label_key = list(dependant_task_label.keys())[0]
             label_value = dependant_task_label[label_key]

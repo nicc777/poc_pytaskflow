@@ -651,7 +651,7 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         for line in logger.all_lines_in_sequence:
             print(line)
 
-    def test_tasks_task_not_found_returns_none(self):
+    def test_tasks_method_find_task_by_name_task_not_found_returns_none(self):
         tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())
         tasks.register_task_processor(processor=Processor2())
@@ -670,6 +670,71 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
             )
         )
         self.assertIsNone(tasks.find_task_by_name(name='test2'))
+
+    def test_tasks_method_find_task_by_label_match(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test1',
+                    'labels': {
+                        'l1': 'lv1',
+                    },
+                    'annotations': {
+                        'contexts': 'c1,c2'
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        tasks.add_task(
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test2',
+                    'labels': {
+                        'l1': 'lv1',
+                    },
+                    'annotations': {
+                        'contexts': 'c1,c2'
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test3',
+                    'annotations': {
+                        'contexts': 'c2',
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        result1 = tasks.find_task_by_label_match(label_key='l1', label_value='lv1')
+        self.assertIsNotNone(result1)
+        self.assertIsInstance(result1, list)
+        self.assertEqual(len(result1), 2)
+        for t in result1:
+            self.assertTrue(t.selector_register['name'] in ('test1', 'test2',))
+            self.assertFalse(t.selector_register['name'] == 'test3')
+
+        result2 = tasks.find_task_by_label_match(label_key='l99', label_value='lv99')
+        self.assertIsNotNone(result2)
+        self.assertIsInstance(result2, list)
+        self.assertEqual(len(result2), 0)
 
 
 class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover

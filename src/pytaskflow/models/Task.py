@@ -505,11 +505,13 @@ class Tasks:
 
     def find_task_by_name(self, name: str, calling_task_id: str=None)->Task:
         for task_id, candidate_task in self.tasks.items():
+            process = True
             if calling_task_id is not None:
                 if calling_task_id == task_id:
-                    return None
-            if candidate_task.task_match_name(name=name) is True:
-                return candidate_task
+                    process = False
+            if process is True:
+                if candidate_task.task_match_name(name=name) is True:
+                    return candidate_task
         return None
     
     def find_task_by_label_match(self, label_key: str, label_value: str, calling_task_id: str=None)->list:
@@ -527,7 +529,7 @@ class Tasks:
             self.logger.debug('_order_tasks(): Task "{}" already in ordered list.'.format(candidate_task.task_id))
             return ordered_list # Already seen...        
         for dependant_task_name in candidate_task.task_dependencies['NamedTasks']:
-            dependant_task = self.find_task_by_name(name=dependant_task_name)
+            dependant_task = self.find_task_by_name(name=dependant_task_name, calling_task_id=candidate_task.task_id)
             if dependant_task is not None:
                 self.logger.debug('_order_tasks(): Task "{}" has dependant task named "{}" with task_id "{}"'.format(candidate_task.task_id, dependant_task_name, dependant_task.task_id))
                 if isinstance(dependant_task, Task):
@@ -542,6 +544,7 @@ class Tasks:
                 label_value = dependant_task_label[candidate_task_label_key]
                 dependant_tasks = self.find_task_by_label_match(label_key=label_key, label_value=label_value, calling_task_id=candidate_task.task_id)
                 if len(dependant_tasks) > 0:
+                    # FIXME test test_tasks_basic_dependant_tasks_2() is supposed to cover these lines, but it doesn't yet...
                     for dependant_task in dependant_tasks:
                         if isinstance(dependant_task, Task):
                             ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task, command=command)

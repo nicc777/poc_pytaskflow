@@ -275,7 +275,7 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         custom_annotations = t.annotations
         self.assertIsNotNone(custom_annotations)
         self.assertIsInstance(custom_annotations, dict)
-        self.assertEqual(len(custom_annotations), 1, 'custom_annotations: {}'.format(custom_annotations))
+        self.assertEqual(len(custom_annotations), 2, 'custom_annotations: {}'.format(custom_annotations))
         self.assertTrue(custom_annotation_name in custom_annotations)
         self.assertEqual(custom_annotations[custom_annotation_name], custom_annotation_value)
 
@@ -610,21 +610,6 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         tasks.register_task_processor(processor=Processor2())
         tasks.add_task(
             task=Task(
-                kind='Processor2',
-                version='v1',
-                spec={'field1': 'value1'},
-                metadata={
-                    'name': 'test2',
-                    'annotations': {
-                        'contexts': 'c1,c2',
-                        'dependency/label/l1': 'lv1',
-                    }
-                },
-                logger=tasks.logger
-            )
-        )
-        tasks.add_task(
-            task=Task(
                 kind='Processor1',
                 version='v1',
                 spec={'field1': 'value1'},
@@ -641,9 +626,47 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 logger=tasks.logger
             )
         )
+        tasks.add_task(
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test2',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'dependency/label/command2/l1': 'lv1',
+                        'dependency/label/command1/l2': 'lv2',
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        tasks.add_task( # This task will NOT be processed...
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test3',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'commands': 'command1', # This puts this task out of scope for this test.
+                        'dependency/label/command1/l1': 'lv1',
+                        'labels': {
+                            'l2': 'lv2',
+                        }
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
 
         key_value_store = tasks.key_value_store
         logger = tasks.logger
+
+        order = tasks.calculate_current_task_order(command='command2', context='c1')
+        print('order={}'.format(order))
 
         tasks.process_context(command='command2', context='c1')
         self.assertIsNotNone(key_value_store)
@@ -654,6 +677,42 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         self.assertTrue(len(logger.critical_lines) == 0)
         for line in logger.all_lines_in_sequence:
             print(line)
+
+    def test_tasks_adding_same_task_twice_produces_exception_1(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor2',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata={
+                    'name': 'test2',
+                    'annotations': {
+                        'contexts': 'c1,c2',
+                        'dependency/label/command2/l1': 'lv1',
+                    }
+                },
+                logger=tasks.logger
+            )
+        )
+        with self.assertRaises(Exception) as cm:
+            tasks.add_task( # This task will NOT be processed...
+                task=Task(
+                    kind='Processor2',
+                    version='v1',
+                    spec={'field1': 'value1'},
+                    metadata={
+                        'name': 'test2',
+                        'annotations': {
+                            'contexts': 'c1,c2',
+                            'dependency/label/command2/l1': 'lv1',
+                        }
+                    },
+                    logger=tasks.logger
+                )
+            )
 
     def test_tasks_basic_dependant_tasks_not_found_throws_exception_1(self):
         tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())

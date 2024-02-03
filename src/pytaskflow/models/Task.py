@@ -217,16 +217,17 @@ class Task:
         """
             Typical Manifest:
 
-                kind: STRING                                                    [required]
-                version: STRING                                                 [required]
+                kind: STRING                                                                    [required]
+                version: STRING                                                                 [required]
                 metadata:
-                  name: STRING                                                  [optional]
-                  labels:                                                       [optional]
+                  name: STRING                                                                  [optional]
+                  labels:                                                                       [optional]
                     key: STRING
-                  annotations:                                                  [optional]
-                    contexts: CSV-STRING                                        [optional, but when supplied only commands within the defined context will be in scope for processing]
-                    dependency/name: CSV-STRING                                 [optional. list of other task names this task depends on]
-                    dependency/label/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
+                  annotations:                                                                  [optional]
+                    contexts: CSV-STRING                                                        [optional, but when supplied only commands within the defined context will be in scope for processing]
+                    commands: CSV-STRING                                                        [optional, but when supplied only commands listed here will bring the task in potential scope (dependant also on context)]
+                    dependency/name: CSV-STRING                                                 [optional. list of other task names this task depends on]
+                    dependency/label/STRING(command)/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
                 spec:
                   ... as required by the TaskProcessor ...
         """
@@ -248,6 +249,7 @@ class Task:
         self.task_dependencies['Labels'] = list()
         self.task_as_dict = dict()
         self.task_contexts = ['default']
+        self.task_commands = list()
         self._calculate_selector_registers()
         self._register_annotations()
         self._register_dependencies()
@@ -289,6 +291,9 @@ class Task:
                             if 'default' in self.task_contexts and len(self.task_contexts) == 1 and item != 'default':
                                 self.task_contexts = list()
                             self.task_contexts.append(item)
+                    if key == 'commands':
+                        for item in '{}'.format(val).replace(' ', '').split(','):
+                            self.task_commands.append(item)
                     elif key.startswith('dependency/label') is False and key.startswith('dependency/name') is False:
                         self.annotations[key] = '{}'.format(val)
 
@@ -442,6 +447,8 @@ class Tasks:
             )
 
     def add_task(self, task: Task):
+        if task.task_id in self.tasks:
+            raise Exception('Task with ID "{}" was already added previously. Please use the "metadata.name" attribute to identify separate (but perhaps similar) manifests.')
         self.key_value_store = self.hooks.process_hook(
             command='NOT_APPLICABLE',
             context='ALL',
@@ -452,15 +459,6 @@ class Tasks:
         )
         processor_id = '{}:{}'.format(task.kind, task.version)
         if processor_id not in self.task_processor_register:
-            # self.key_value_store = self.hooks.process_hook(
-            #     command='NOT_APPLICABLE',
-            #     context='ALL',
-            #     task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
-            #     key_value_store=copy.deepcopy(self.key_value_store),
-            #     task=task,
-            #     task_id=task.task_id
-            # )
-            #raise Exception('Task kind "{}" with version "{}" has no processor registered. Ensure all task processors are registered before adding tasks.'.format(task.kind, task.version))
             self.key_value_store = self.hooks.process_hook(
                 command='NOT_APPLICABLE',
                 context='ALL',
@@ -492,7 +490,10 @@ class Tasks:
                 self.task_processor_register[id] = executor_id
 
     def _task_qualifies_for_contextual_processing(self, task: Task, command: str, context: str)->bool:
-        if context in task.task_contexts:
+        final_command_list = [copy.deepcopy(command),]
+        if len(task.task_commands) > 0:
+            final_command_list = copy.deepcopy(task.task_commands)
+        if context in task.task_contexts and command in final_command_list:
             target_task_processor_id = '{}:{}'.format(task.kind, task.version)
             if target_task_processor_id in self.task_processor_register:
                 target_task_processor_executor_id = self.task_processor_register[target_task_processor_id]
@@ -502,20 +503,26 @@ class Tasks:
                         return True
         return False
 
-    def find_task_by_name(self, name: str)->Task:
+    def find_task_by_name(self, name: str, calling_task_id: str=None)->Task:
         for task_id, candidate_task in self.tasks.items():
+            if calling_task_id is not None:
+                if calling_task_id == task_id:
+                    return None
             if candidate_task.task_match_name(name=name) is True:
                 return candidate_task
         return None
     
-    def find_task_by_label_match(self, label_key: str, label_value: str)->list:
+    def find_task_by_label_match(self, label_key: str, label_value: str, calling_task_id: str=None)->list:
         tasks = list()
         for task_id, candidate_task in self.tasks.items():
+            if calling_task_id is not None:
+                if calling_task_id == task_id:
+                    return list()
             if candidate_task.task_match_label(key=label_key, value=label_value) is True:
                 tasks.append(candidate_task)
         return tasks
 
-    def _order_tasks(self, ordered_list: list, candidate_task: Task)->list:
+    def _order_tasks(self, ordered_list: list, candidate_task: Task, command:str)->list:
         if candidate_task.task_id in ordered_list:
             self.logger.debug('_order_tasks(): Task "{}" already in ordered list.'.format(candidate_task.task_id))
             return ordered_list # Already seen...        
@@ -524,17 +531,20 @@ class Tasks:
             if dependant_task is not None:
                 self.logger.debug('_order_tasks(): Task "{}" has dependant task named "{}" with task_id "{}"'.format(candidate_task.task_id, dependant_task_name, dependant_task.task_id))
                 if isinstance(dependant_task, Task):
-                    ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
+                    ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task, command=command)
             else:
                 raise Exception('_order_tasks(): Task "{}" has dependant task named "{}" which could NOT be found'.format(candidate_task.task_id, dependant_task_name))
         for dependant_task_label in candidate_task.task_dependencies['Labels']:
-            label_key = list(dependant_task_label.keys())[0]
-            label_value = dependant_task_label[label_key]
-            dependant_tasks = self.find_task_by_label_match(label_key=label_key, label_value=label_value)
-            if len(dependant_tasks) > 0:
-                for dependant_task in dependant_tasks:
-                    if isinstance(dependant_task, Task):
-                        ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task)
+            candidate_task_label_key = list(dependant_task_label.keys())[0] # example: 'dependency/label/command2/l1' 
+            label_key = candidate_task_label_key.split('/')[-1]             # example: 'dependency/label/command2/l1' will become "l1"
+            label_command_scope = list(dependant_task_label.keys())[0].split('/')[-2]    # example: 'dependency/label/command2/l1' will become "command2"
+            if label_command_scope == command:
+                label_value = dependant_task_label[candidate_task_label_key]
+                dependant_tasks = self.find_task_by_label_match(label_key=label_key, label_value=label_value, calling_task_id=candidate_task.task_id)
+                if len(dependant_tasks) > 0:
+                    for dependant_task in dependant_tasks:
+                        if isinstance(dependant_task, Task):
+                            ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task, command=command)
         ordered_list.append(candidate_task.task_id)
         return ordered_list
 
@@ -543,7 +553,7 @@ class Tasks:
         for task_id, task in self.tasks.items():
             self.logger.debug('calculate_current_task_order(): Considering task "{}"'.format(task.task_id))
             if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
-                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task)
+                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, command=command)
         return task_order
 
     def process_context(self, command: str, context: str):

@@ -1,6 +1,7 @@
 import json
 import hashlib
 import copy
+from collections import Sequence
 
 
 def keys_to_lower(data: dict):
@@ -45,6 +46,85 @@ class LoggerWrapper:    # pragma: no cover
 
     def error(self, message: str):
         self.info(message=message)
+
+
+class IdentifierContext:
+
+    def __init__(self, context_type: str, context_name: str):
+        self.context_type = context_type
+        self.context_name = context_name
+
+    def context(self)->str:
+        return '{}:{}'.format(
+            self.context_type,
+            self.context_name
+        )
+
+
+class IdentifierContexts(Sequence):
+
+    def __init__(self):
+        self.identifier_contexts = list()
+
+    def add_identifier_context(self, identifier_context: IdentifierContext):
+        for existing_identifier_context in self.identifier_contexts:
+            if existing_identifier_context.context_type != identifier_context.context_type and existing_identifier_context.context_name != identifier_context.context_name:
+                self.identifier_contexts.append(identifier_context)
+
+    def is_empty(self)->bool:
+        if len(self.identifier_contexts) > 0:
+            return False
+        return True
+    
+    def contains_identifier_context(self, target_identifier_context: IdentifierContext)->bool:
+        if target_identifier_context is not None:
+            if isinstance(target_identifier_context, IdentifierContext):
+                for local_identifier_context in self.identifier_contexts:
+                    if local_identifier_context.context() == target_identifier_context.context():
+                        return True
+        return False
+    
+    def __getitem__(self, index):
+        return self.identifier_contexts[index]
+
+    def __len__(self):
+        return len(self.identifier_contexts)
+
+
+class Identifier:
+
+    def __init__(self, type: str, key: str, val: str=None, identifier_contexts: IdentifierContexts=IdentifierContexts()):
+        self.type = type
+        self.key = key
+        self.val = val
+        self.identifier_contexts = identifier_contexts
+
+    def identifier_matches_any_context(self, type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
+        if self.type == type and self.key == key and self.val == val:
+            if self.identifier_contexts.is_empty() is True: # This identifier (self) is not context bound, therefore the the given contexts does not matter. 
+                return True
+            for target_identifier_context in target_identifier_contexts:
+                if self.identifier_contexts.contains_identifier_context(target_identifier_context=target_identifier_context):
+                    return True
+        return False
+    
+
+class Identifiers(Sequence):
+
+    def __init__(self):
+        self.identifiers = list()
+
+    def identifier_matches_any_context(self, type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
+        for local_identifier in self.identifiers:
+            if local_identifier.identifier_matches_any_context(type=type, key=key, val=val, target_identifier_contexts=target_identifier_contexts) is True:
+                return True
+        return False
+
+    def __getitem__(self, index):
+        return self.identifiers[index]
+
+    def __len__(self):
+        return len(self.identifiers)
 
 
 class StatePersistence:

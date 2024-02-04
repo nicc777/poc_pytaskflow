@@ -1428,7 +1428,9 @@ class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
         self.assertTrue(ics.is_empty())
         ics.add_identifier_context(identifier_context=ic1)
         ics.add_identifier_context(identifier_context=ic2)
+        ics.add_identifier_context(identifier_context=ic2) # This duplicate will be ignored...
         self.assertFalse(ics.is_empty())
+        self.assertEqual(len(ics), 2)
         self.assertTrue(ics.contains_identifier_context(target_identifier_context=ic1))
         self.assertTrue(ics.contains_identifier_context(target_identifier_context=ic2))
         self.assertFalse(ics.contains_identifier_context(target_identifier_context=ic3))
@@ -1473,6 +1475,16 @@ class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type2', key='key1', val='val1', target_identifier_contexts=matching_ics1)) # type mismatches
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val2', target_identifier_contexts=matching_ics1)) # val mismatches
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', target_identifier_contexts=matching_ics1)) # val mismatches
+
+    def test_init_basic_2(self):
+        identifier = Identifier(identifier_type='id_type1', key='key1', val='val1')
+        self.assertIsNotNone(identifier)
+        self.assertIsInstance(identifier, Identifier)
+        self.assertTrue(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1'))
+        self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key2', val='val1')) # key mismatches
+        self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type2', key='key1', val='val1')) # type mismatches
+        self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val2')) # val mismatches
+        self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1')) # val mismatches
 
 
 class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover

@@ -1508,6 +1508,11 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         identifiers = Identifiers()
         identifiers.add_identifier(identifier=identifier1)
         identifiers.add_identifier(identifier=identifier2)
+        identifiers.add_identifier(identifier=identifier2) # This will have no effect... identifier was already added and duplicates are ignored
+
+        self.assertIsNotNone(identifiers)
+        self.assertIsInstance(identifiers, Identifiers)
+        self.assertEqual(len(identifiers), 2)
 
         matching_ics1 = IdentifierContexts()
         matching_ics1.add_identifier_context(identifier_context=ic1)

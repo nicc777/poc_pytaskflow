@@ -1,7 +1,7 @@
 import json
 import hashlib
 import copy
-from collections import Sequence
+from collections.abc import Sequence
 
 
 def keys_to_lower(data: dict):
@@ -67,9 +67,12 @@ class IdentifierContexts(Sequence):
         self.identifier_contexts = list()
 
     def add_identifier_context(self, identifier_context: IdentifierContext):
+        duplicates = False
         for existing_identifier_context in self.identifier_contexts:
-            if existing_identifier_context.context_type != identifier_context.context_type and existing_identifier_context.context_name != identifier_context.context_name:
-                self.identifier_contexts.append(identifier_context)
+            if existing_identifier_context.context_type == identifier_context.context_type and existing_identifier_context.context_name == identifier_context.context_name:
+                duplicates = True
+        if duplicates is False:
+            self.identifier_contexts.append(identifier_context)
 
     def is_empty(self)->bool:
         if len(self.identifier_contexts) > 0:
@@ -93,14 +96,14 @@ class IdentifierContexts(Sequence):
 
 class Identifier:
 
-    def __init__(self, type: str, key: str, val: str=None, identifier_contexts: IdentifierContexts=IdentifierContexts()):
-        self.type = type
+    def __init__(self, identifier_type: str, key: str, val: str=None, identifier_contexts: IdentifierContexts=IdentifierContexts()):
+        self.identifier_type = identifier_type
         self.key = key
         self.val = val
         self.identifier_contexts = identifier_contexts
 
-    def identifier_matches_any_context(self, type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
-        if self.type == type and self.key == key and self.val == val:
+    def identifier_matches_any_context(self, identifier_type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
+        if self.identifier_type == identifier_type and self.key == key and self.val == val:
             if self.identifier_contexts.is_empty() is True: # This identifier (self) is not context bound, therefore the the given contexts does not matter. 
                 return True
             for target_identifier_context in target_identifier_contexts:

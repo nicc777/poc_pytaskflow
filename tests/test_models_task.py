@@ -1513,6 +1513,8 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(identifiers)
         self.assertIsInstance(identifiers, Identifiers)
         self.assertEqual(len(identifiers), 2)
+        for candidate_identifier in identifiers:
+            self.assertIsInstance(candidate_identifier, Identifier)
 
         matching_ics1 = IdentifierContexts()
         matching_ics1.add_identifier_context(identifier_context=ic1)

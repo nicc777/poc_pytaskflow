@@ -59,12 +59,19 @@ class IdentifierContext:
             self.context_type,
             self.context_name
         )
+    
+    def to_dict(self)->dict:
+        data = dict()
+        data['ContextType'] = self.context_type
+        data['ContextName'] = self.context_name
+        return data
 
 
 class IdentifierContexts(Sequence):
 
     def __init__(self):
         self.identifier_contexts = list()
+        self.unique_identifier_value = hashlib.sha256(json.dumps(self.identifier_contexts).encode('utf-8')).hexdigest()
 
     def add_identifier_context(self, identifier_context: IdentifierContext):
         duplicates = False
@@ -73,6 +80,7 @@ class IdentifierContexts(Sequence):
                 duplicates = True
         if duplicates is False:
             self.identifier_contexts.append(identifier_context)
+            self.unique_identifier_value = hashlib.sha256(json.dumps(self.to_dict()).encode('utf-8')).hexdigest()
 
     def is_empty(self)->bool:
         if len(self.identifier_contexts) > 0:
@@ -87,6 +95,14 @@ class IdentifierContexts(Sequence):
                         return True
         return False
     
+    def to_dict(self)->dict:
+        data = dict()
+        data['IdentifierContexts'] = list()
+        for identifier_context in self.identifier_contexts:
+            data['IdentifierContexts'].append(identifier_context.to_dict())
+        data['UniqueId'] = self.unique_identifier_value
+        return data
+
     def __getitem__(self, index):
         return self.identifier_contexts[index]
 
@@ -101,6 +117,16 @@ class Identifier:
         self.key = key
         self.val = val
         self.identifier_contexts = identifier_contexts
+        self.unique_identifier_value = self._calc_unique_id()
+
+    def _calc_unique_id(self)->str:
+        data = dict()
+        data['IdentifierType'] = self.identifier_type
+        data['IdentifierKey'] = self.key
+        if self.val is not None:
+            data['IdentifierValue'] = self.val
+        data['IdentifierContexts'] = self.identifier_contexts.to_dict()
+        return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
 
     def identifier_matches_any_context(self, identifier_type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
         if self.identifier_type == identifier_type and self.key == key and self.val == val:
@@ -111,15 +137,34 @@ class Identifier:
                     return True
         return False
     
+    def to_dict(self)->dict:
+        data = dict()
+        data['IdentifierType'] = self.identifier_type
+        data['IdentifierKey'] = self.key
+        if self.val is not None:
+            data['IdentifierValue'] = self.val
+        data['IdentifierContexts'] = self.identifier_contexts.to_dict()
+        data['UniqueId'] = self.unique_identifier_value
+        return data
+    
 
 class Identifiers(Sequence):
 
     def __init__(self):
         self.identifiers = list()
+        self.unique_identifier_value = hashlib.sha256(json.dumps(self.identifiers).encode('utf-8')).hexdigest()
 
-    def identifier_matches_any_context(self, type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
+    def add_identifier(self, identifier: Identifier):
+        can_add = True
+        for existing_identifier in self.identifiers:
+            if existing_identifier.to_dict()['UniqueId'] == identifier.to_dict['UniqueId']:
+                can_add = False
+        if can_add is True:
+            self.identifiers.append(identifier)
+
+    def identifier_matches_any_context(self, identifier_type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
         for local_identifier in self.identifiers:
-            if local_identifier.identifier_matches_any_context(type=type, key=key, val=val, target_identifier_contexts=target_identifier_contexts) is True:
+            if local_identifier.identifier_matches_any_context(identifier_type=identifier_type, key=key, val=val, target_identifier_contexts=target_identifier_contexts) is True:
                 return True
         return False
 

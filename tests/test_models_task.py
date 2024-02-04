@@ -1475,5 +1475,42 @@ class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', target_identifier_contexts=matching_ics1)) # val mismatches
 
 
+class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_init_basic_1(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type2', context_name='context2')
+        ic3 = IdentifierContext(context_type='type3', context_name='context3')
+        main_ics = IdentifierContexts()
+        main_ics.add_identifier_context(identifier_context=ic1)
+        main_ics.add_identifier_context(identifier_context=ic2)
+        identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        identifiers = Identifiers()
+        identifiers.add_identifier(identifier=identifier1)
+
+        matching_ics1 = IdentifierContexts()
+        matching_ics1.add_identifier_context(identifier_context=ic1)
+        matching_ics2 = IdentifierContexts()
+        matching_ics2.add_identifier_context(identifier_context=ic2)
+        matching_ics3 = IdentifierContexts()
+        matching_ics3.add_identifier_context(identifier_context=ic1)
+        matching_ics3.add_identifier_context(identifier_context=ic2)
+        none_matching_ics1 = IdentifierContexts()
+        none_matching_ics1.add_identifier_context(identifier_context=ic3)
+
+        self.assertTrue(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics1))
+        self.assertTrue(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics2))
+        self.assertTrue(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics3))
+        self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=none_matching_ics1)) # target_identifier_contexts mismatches
+        self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key2', val='val1', target_identifier_contexts=matching_ics1)) # key mismatches
+        self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type2', key='key1', val='val1', target_identifier_contexts=matching_ics1)) # type mismatches
+        self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val2', target_identifier_contexts=matching_ics1)) # val mismatches
+        self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', target_identifier_contexts=matching_ics1)) # val mismatches
+
+
 if __name__ == '__main__':
     unittest.main()

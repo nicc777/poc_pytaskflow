@@ -157,7 +157,7 @@ class Identifiers(Sequence):
     def add_identifier(self, identifier: Identifier):
         can_add = True
         for existing_identifier in self.identifiers:
-            if existing_identifier.to_dict()['UniqueId'] == identifier.to_dict['UniqueId']:
+            if existing_identifier.to_dict()['UniqueId'] == identifier.to_dict()['UniqueId']:
                 can_add = False
         if can_add is True:
             self.identifiers.append(identifier)

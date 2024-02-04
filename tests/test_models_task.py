@@ -1486,6 +1486,9 @@ class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val2')) # val mismatches
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1')) # val mismatches
 
+    # def test_init_to_dict_1(self):
+    #     identifier = Identifier(identifier_type='id_type1', key='key1', val='val1')
+
 
 class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
 
@@ -1501,8 +1504,10 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         main_ics.add_identifier_context(identifier_context=ic1)
         main_ics.add_identifier_context(identifier_context=ic2)
         identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        identifier2 = Identifier(identifier_type='id_type2', key='key2')
         identifiers = Identifiers()
         identifiers.add_identifier(identifier=identifier1)
+        identifiers.add_identifier(identifier=identifier2)
 
         matching_ics1 = IdentifierContexts()
         matching_ics1.add_identifier_context(identifier_context=ic1)

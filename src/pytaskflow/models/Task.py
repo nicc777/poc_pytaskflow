@@ -118,6 +118,7 @@ class Identifier:
         self.val = val
         self.identifier_contexts = identifier_contexts
         self.unique_identifier_value = self._calc_unique_id()
+        self.is_contextual_identifier = bool(len(identifier_contexts))
 
     def _calc_unique_id(self)->str:
         data = dict()
@@ -167,6 +168,61 @@ class Identifiers(Sequence):
             if local_identifier.identifier_matches_any_context(identifier_type=identifier_type, key=key, val=val, target_identifier_contexts=target_identifier_contexts) is True:
                 return True
         return False
+
+    def to_metadata_dict(self):
+        """
+            metadata:
+              identifiers:                    # Non-contextual identifier
+              - type: STRING                  # Example: ManifestName
+                key: STRING                   # Example: my-manifest
+                value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
+              - type: STRING                  # Example: Label
+                key: STRING                   # Example: my-key
+                value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+
+              contextualIdentifiers:
+              - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+                key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+                value val: STRING         # Example: Null|None
+                contexts:
+                - type: STRING              # Example: Environment
+                  names:
+                  - STRING                  # Example: sandbox
+                  - STRING                  # Example: test
+                  - STRING                  # Example: production
+                - type: STRING              # Example: Command
+                  names:
+                  - STRING                  # Example: apply
+                  - STRING                  # Example: delete
+
+            Therefore, there are essentially 3x types of Identifiers in a standard Task processing context:
+
+                * "ManifestName", which does not have contexts
+                * "Label", which does not have contexts
+                * "ExecutionScope", which DOES have contexts
+
+            Any other "identifiers" (with or without contexts) must be handled/processed by the TaskProcessor Implementation as required
+        """
+        metadata = dict()
+        for identifier in self.identifiers:
+            if isinstance(identifier, Identifier):
+                if identifier.is_contextual_identifier is True:
+                    if 'annotations' not in metadata:
+                        metadata['annotations'] = dict()
+                    if 'contextualIdentifiers' not in metadata['annotations']:
+                        metadata['annotations']['contextualIdentifiers'] = list()
+
+                    # TODO
+
+                else:
+                    if 'annotations' not in metadata:
+                        metadata['annotations'] = dict()
+                    if 'identifiers' not in metadata['annotations']:
+                        metadata['annotations']['identifiers'] = list()
+
+                    # TODO
+
+        return metadata
 
     def __getitem__(self, index):
         return self.identifiers[index]
@@ -339,23 +395,119 @@ class Hooks:
         return False
 
 
+def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
+    new_identifiers = Identifiers()
+    new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
+    new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
+
+    if 'annotations' in metadata:
+        if 'identifiers' in metadata['annotations']:
+            if isinstance(metadata['annotations']['identifiers'], list):
+                for identifier_data in metadata['annotations']['identifiers']:
+                    if 'type' in identifier_data and 'key' in identifier_data:
+                        val = None
+                        if 'val' in identifier_data:
+                            val = identifier_data['val']
+                        new_identifiers.add_identifier(identifier=Identifier(identifier_type=identifier_data['type'], key=identifier_data['key'], val=val))
+
+    if 'name' in metadata:
+        if isinstance(metadata['name'], str):
+            if len(metadata['name']) > 0:
+                new_identifiers.add_identifier(identifier=Identifier(identifier_type='ManifestName', key=metadata['name']))
+
+    return new_identifiers
+
+
+def build_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
+    new_identifiers = Identifiers()
+    new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
+    new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
+
+    if 'annotations' in metadata:
+        if 'contextualIdentifiers' in metadata['annotations']:
+            if isinstance(metadata['annotations']['contextualIdentifiers'], list):
+                for contextual_identifier_data in metadata['annotations']['contextualIdentifiers']:
+                    if 'contexts' in contextual_identifier_data and 'identifiers' in contextual_identifier_data:
+                        contexts = IdentifierContexts()
+                        for context in contextual_identifier_data['contexts']:
+                            if 'type' in context and 'names' in context:
+                                if isinstance(context['type'], str) is True and isinstance(context['names'], list) is True:
+                                    context_type = context['type']
+                                    for name in context['names']:
+                                        contexts.add_identifier_context(
+                                            identifier_context=IdentifierContext(
+                                                context_type=context_type,
+                                                context_name=name
+                                            )
+                                        )
+                        for identifier_data in contextual_identifier_data['identifiers'] and len(contexts) > 0:
+                            if 'type' in identifier_data and 'key' in identifier_data:
+                                val = None
+                                if 'val' in identifier_data:
+                                    val = identifier_data['val']
+                                new_identifiers.add_identifier(
+                                    identifier=Identifier(
+                                        identifier_type=identifier_data['type'],
+                                        key=identifier_data['key'],
+                                        val=val,
+                                        identifier_contexts=contexts
+                                    )
+                                )
+
+    return new_identifiers
+
+
 class Task:
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict(), logger: LoggerWrapper=LoggerWrapper()):
         """
             Typical Manifest:
 
-                kind: STRING                                                                    [required]
-                version: STRING                                                                 [required]
+                kind: STRING                                                                    # [required]
+                version: STRING                                                                 # [required]
                 metadata:
-                  name: STRING                                                                  [optional]
-                  labels:                                                                       [optional]
+                  name: STRING                                                                  # [optional]
+                  labels:                                                                       # [optional]
                     key: STRING
-                  annotations:                                                                  [optional]
-                    contexts: CSV-STRING                                                        [optional, but when supplied only commands within the defined context will be in scope for processing]
-                    commands: CSV-STRING                                                        [optional, but when supplied only commands listed here will bring the task in potential scope (dependant also on context)]
-                    dependency/name: CSV-STRING                                                 [optional. list of other task names this task depends on]
-                    dependency/label/STRING(command)/STRING(label-name): STRING(label-value)    [optional. select dependant task by label value]
+                  annotations:                                                                  # [optional]
+
+                    # DEPRECATED....
+                    contexts: CSV-STRING                                                        # [optional, but when supplied only commands within the defined context will be in scope for processing]
+                    commands: CSV-STRING                                                        # [optional, but when supplied only commands listed here will bring the task in potential scope (dependant also on context)]
+                    dependency/name: CSV-STRING                                                 # [optional. list of other task names this task depends on]
+                    dependency/label/STRING(command)/STRING(label-name): STRING(label-value)    # [optional. select dependant task by label value]
+
+                    # NEW....
+                    identifiers:                    # Non-contextual identifier
+                    - type: STRING                  # Example: ManifestName
+                      key: STRING                   # Example: my-manifest
+                      value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
+                    - type: STRING                  # Example: Label
+                      key: STRING                   # Example: my-key
+                      value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+
+                    contextualIdentifiers:
+                    - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+                      key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+                      value val: STRING         # Example: Null|None
+                      contexts:
+                      - type: STRING              # Example: Environment
+                        names:
+                        - STRING                  # Example: sandbox
+                        - STRING                  # Example: test
+                        - STRING                  # Example: production
+                      - type: STRING              # Example: Command
+                        names:
+                        - STRING                  # Example: apply
+                        - STRING                  # Example: delete
+
+                    dependencies:
+                      - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
+                        identifiers:
+                        - key: STRING
+                          value: STRING                         # Optional - required for identifierType "Label"
+                          
+
                 spec:
                   ... as required by the TaskProcessor ...
         """
@@ -363,6 +515,10 @@ class Task:
         self.kind = kind
         self.version = version
         self.metadata = dict()
+        self.identifiers = build_contextual_identifiers(
+            metadata=metadata,
+            current_identifiers=build_non_contextual_identifiers(metadata=metadata)
+        )
         if metadata is not None:
             if isinstance(metadata, dict):
                 self.metadata = keys_to_lower(data=metadata)

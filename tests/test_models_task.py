@@ -1467,6 +1467,7 @@ class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
         identifier = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
         self.assertIsNotNone(identifier)
         self.assertIsInstance(identifier, Identifier)
+        self.assertTrue(identifier.is_contextual_identifier)
         self.assertTrue(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics1))
         self.assertTrue(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics2))
         self.assertTrue(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1', target_identifier_contexts=matching_ics3))
@@ -1480,6 +1481,7 @@ class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
         identifier = Identifier(identifier_type='id_type1', key='key1', val='val1')
         self.assertIsNotNone(identifier)
         self.assertIsInstance(identifier, Identifier)
+        self.assertFalse(identifier.is_contextual_identifier)
         self.assertTrue(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val1'))
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type1', key='key2', val='val1')) # key mismatches
         self.assertFalse(identifier.identifier_matches_any_context(identifier_type='id_type2', key='key1', val='val1')) # type mismatches

@@ -396,24 +396,29 @@ class Hooks:
 
 
 def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
+    """
+        metadata:
+          identifiers:                    # Non-contextual identifier
+          - type: STRING                  # Example: ManifestName
+            key: STRING                   # Example: my-manifest
+            value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
+          - type: STRING                  # Example: Label
+            key: STRING                   # Example: my-key
+            value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+    """
+
     new_identifiers = Identifiers()
     new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
     new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
 
-    if 'annotations' in metadata:
-        if 'identifiers' in metadata['annotations']:
-            if isinstance(metadata['annotations']['identifiers'], list):
-                for identifier_data in metadata['annotations']['identifiers']:
-                    if 'type' in identifier_data and 'key' in identifier_data:
-                        val = None
-                        if 'val' in identifier_data:
-                            val = identifier_data['val']
-                        new_identifiers.add_identifier(identifier=Identifier(identifier_type=identifier_data['type'], key=identifier_data['key'], val=val))
-
-    if 'name' in metadata:
-        if isinstance(metadata['name'], str):
-            if len(metadata['name']) > 0:
-                new_identifiers.add_identifier(identifier=Identifier(identifier_type='ManifestName', key=metadata['name']))
+    if 'identifiers' in metadata:
+        if isinstance(metadata['identifiers'], list):
+            for identifier_data in metadata['identifiers']:
+                if 'type' in identifier_data and 'key' in identifier_data:
+                    val = None
+                    if 'val' in identifier_data:
+                        val = identifier_data['val']
+                    new_identifiers.add_identifier(identifier=Identifier(identifier_type=identifier_data['type'], key=identifier_data['key'], val=val))
 
     return new_identifiers
 

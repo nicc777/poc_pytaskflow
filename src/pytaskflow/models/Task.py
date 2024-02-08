@@ -449,7 +449,7 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
     if 'contextualIdentifiers' in metadata:
         if isinstance(metadata['contextualIdentifiers'], list):
             for contextual_identifier_data in metadata['contextualIdentifiers']:
-                if 'contexts' in contextual_identifier_data and 'identifiers' in contextual_identifier_data:
+                if 'contexts' in contextual_identifier_data:
                     contexts = IdentifierContexts()
                     for context in contextual_identifier_data['contexts']:
                         if 'type' in context and 'names' in context:
@@ -462,19 +462,18 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
                                             context_name=name
                                         )
                                     )
-                    for identifier_data in contextual_identifier_data['identifiers'] and len(contexts) > 0:
-                        if 'type' in identifier_data and 'key' in identifier_data:
-                            val = None
-                            if 'val' in identifier_data:
-                                val = identifier_data['val']
-                            new_identifiers.add_identifier(
-                                identifier=Identifier(
-                                    identifier_type=identifier_data['type'],
-                                    key=identifier_data['key'],
-                                    val=val,
-                                    identifier_contexts=contexts
-                                )
-                            )
+                if 'type' in contextual_identifier_data and 'key' in contextual_identifier_data:
+                    val = None
+                    if 'val' in contextual_identifier_data:
+                        val = contextual_identifier_data['val']
+                    new_identifiers.add_identifier(
+                        identifier=Identifier(
+                            identifier_type=contextual_identifier_data['type'],
+                            key=contextual_identifier_data['key'],
+                            val=val,
+                            identifier_contexts=contexts
+                        )
+                    )
 
     return new_identifiers
 

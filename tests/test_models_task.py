@@ -1610,6 +1610,16 @@ class TestFunctionBuildContextualIdentifiers(unittest.TestCase):    # pragma: no
                 }
             ]
         }
+        identifiers = build_contextual_identifiers(metadata=metadata)
+        self.assertIsNotNone(identifiers)
+        self.assertIsInstance(identifiers, Identifiers)
+        self.assertEqual(len(identifiers), 1)
+        identifier: Identifier
+        for identifier in identifiers:
+            self.assertIsNotNone(identifier)
+            self.assertIsInstance(identifier, Identifier)
+            self.assertTrue(identifier.is_contextual_identifier)
+
 
 if __name__ == '__main__':
     unittest.main()

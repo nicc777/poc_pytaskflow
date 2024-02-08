@@ -1538,5 +1538,45 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', target_identifier_contexts=matching_ics1)) # val mismatches
 
 
+class TestFunctionBuildNonContextualIdentifiers(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_basic_1(self):
+        metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "my-name"
+                },
+                {
+                    "type": "Label",
+                    "key": "my-key",
+                    "value": "my-value"
+                }
+            ]
+        }
+        identifiers = build_non_contextual_identifiers(metadata=metadata)
+        self.assertIsNotNone(identifiers)
+        self.assertIsInstance(identifiers, Identifiers)
+        self.assertEqual(len(identifiers), 2)
+
+        manifest_name_found = False
+        label_found = False
+        identifier: Identifier
+        for identifier in identifiers:
+            self.assertIsNotNone(identifier)
+            self.assertIsInstance(identifier, Identifier)
+            self.assertFalse(identifier.is_contextual_identifier)
+            if identifier.identifier_type == 'ManifestName':
+                manifest_name_found = True
+            elif identifier.identifier_type == 'Label':
+                label_found = True
+        self.assertTrue(manifest_name_found)
+        self.assertTrue(label_found)
+
+
 if __name__ == '__main__':
     unittest.main()

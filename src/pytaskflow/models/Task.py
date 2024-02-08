@@ -446,36 +446,35 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
     new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
     new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
 
-    if 'annotations' in metadata:
-        if 'contextualIdentifiers' in metadata['annotations']:
-            if isinstance(metadata['annotations']['contextualIdentifiers'], list):
-                for contextual_identifier_data in metadata['annotations']['contextualIdentifiers']:
-                    if 'contexts' in contextual_identifier_data and 'identifiers' in contextual_identifier_data:
-                        contexts = IdentifierContexts()
-                        for context in contextual_identifier_data['contexts']:
-                            if 'type' in context and 'names' in context:
-                                if isinstance(context['type'], str) is True and isinstance(context['names'], list) is True:
-                                    context_type = context['type']
-                                    for name in context['names']:
-                                        contexts.add_identifier_context(
-                                            identifier_context=IdentifierContext(
-                                                context_type=context_type,
-                                                context_name=name
-                                            )
+    if 'contextualIdentifiers' in metadata:
+        if isinstance(metadata['contextualIdentifiers'], list):
+            for contextual_identifier_data in metadata['contextualIdentifiers']:
+                if 'contexts' in contextual_identifier_data and 'identifiers' in contextual_identifier_data:
+                    contexts = IdentifierContexts()
+                    for context in contextual_identifier_data['contexts']:
+                        if 'type' in context and 'names' in context:
+                            if isinstance(context['type'], str) is True and isinstance(context['names'], list) is True:
+                                context_type = context['type']
+                                for name in context['names']:
+                                    contexts.add_identifier_context(
+                                        identifier_context=IdentifierContext(
+                                            context_type=context_type,
+                                            context_name=name
                                         )
-                        for identifier_data in contextual_identifier_data['identifiers'] and len(contexts) > 0:
-                            if 'type' in identifier_data and 'key' in identifier_data:
-                                val = None
-                                if 'val' in identifier_data:
-                                    val = identifier_data['val']
-                                new_identifiers.add_identifier(
-                                    identifier=Identifier(
-                                        identifier_type=identifier_data['type'],
-                                        key=identifier_data['key'],
-                                        val=val,
-                                        identifier_contexts=contexts
                                     )
+                    for identifier_data in contextual_identifier_data['identifiers'] and len(contexts) > 0:
+                        if 'type' in identifier_data and 'key' in identifier_data:
+                            val = None
+                            if 'val' in identifier_data:
+                                val = identifier_data['val']
+                            new_identifiers.add_identifier(
+                                identifier=Identifier(
+                                    identifier_type=identifier_data['type'],
+                                    key=identifier_data['key'],
+                                    val=val,
+                                    identifier_contexts=contexts
                                 )
+                            )
 
     return new_identifiers
 

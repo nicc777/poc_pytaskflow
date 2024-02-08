@@ -469,6 +469,37 @@ class Task:
                   name: STRING                                                                  # [optional]
                   labels:                                                                       # [optional]
                     key: STRING
+
+                  # NEW....
+                  identifiers:                    # Non-contextual identifier
+                  - type: STRING                  # Example: ManifestName
+                    key: STRING                   # Example: my-manifest
+                    value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
+                  - type: STRING                  # Example: Label
+                    key: STRING                   # Example: my-key
+                    value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+
+                  contextualIdentifiers:
+                  - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+                    key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+                    value val: STRING         # Example: Null|None
+                    contexts:
+                    - type: STRING              # Example: Environment
+                      names:
+                      - STRING                  # Example: sandbox
+                      - STRING                  # Example: test
+                      - STRING                  # Example: production
+                    - type: STRING              # Example: Command
+                      names:
+                      - STRING                  # Example: apply
+                      - STRING                  # Example: delete
+
+                  dependencies:
+                  - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
+                    identifiers:
+                    - key: STRING
+                      value: STRING                         # Optional - required for identifierType "Label"
+
                   annotations:                                                                  # [optional]
 
                     # DEPRECATED....
@@ -477,35 +508,8 @@ class Task:
                     dependency/name: CSV-STRING                                                 # [optional. list of other task names this task depends on]
                     dependency/label/STRING(command)/STRING(label-name): STRING(label-value)    # [optional. select dependant task by label value]
 
-                    # NEW....
-                    identifiers:                    # Non-contextual identifier
-                    - type: STRING                  # Example: ManifestName
-                      key: STRING                   # Example: my-manifest
-                      value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
-                    - type: STRING                  # Example: Label
-                      key: STRING                   # Example: my-key
-                      value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
 
-                    contextualIdentifiers:
-                    - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-                      key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-                      value val: STRING         # Example: Null|None
-                      contexts:
-                      - type: STRING              # Example: Environment
-                        names:
-                        - STRING                  # Example: sandbox
-                        - STRING                  # Example: test
-                        - STRING                  # Example: production
-                      - type: STRING              # Example: Command
-                        names:
-                        - STRING                  # Example: apply
-                        - STRING                  # Example: delete
-
-                    dependencies:
-                      - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
-                        identifiers:
-                        - key: STRING
-                          value: STRING                         # Optional - required for identifierType "Label"
+                    
                           
 
                 spec:

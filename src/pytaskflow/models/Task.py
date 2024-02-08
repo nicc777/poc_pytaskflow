@@ -466,9 +466,6 @@ class Task:
                 kind: STRING                                                                    # [required]
                 version: STRING                                                                 # [required]
                 metadata:
-                  name: STRING                                                                  # [optional]
-                  labels:                                                                       # [optional]
-                    key: STRING
 
                   # NEW....
                   identifiers:                    # Non-contextual identifier
@@ -499,6 +496,12 @@ class Task:
                     identifiers:
                     - key: STRING
                       value: STRING                         # Optional - required for identifierType "Label"
+
+
+                  # DEPRECATED...
+                  name: STRING                                                                  # [optional]
+                  labels:                                                                       # [optional]
+                    key: STRING
 
                   annotations:                                                                  # [optional]
 

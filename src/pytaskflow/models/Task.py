@@ -424,6 +424,24 @@ def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identi
 
 
 def build_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
+    """
+        metadata:
+          contextualIdentifiers:
+          - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+            key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+            value val: STRING         # Example: Null|None
+            contexts:
+            - type: STRING              # Example: Environment
+              names:
+              - STRING                  # Example: sandbox
+              - STRING                  # Example: test
+              - STRING                  # Example: production
+            - type: STRING              # Example: Command
+              names:
+              - STRING                  # Example: apply
+              - STRING                  # Example: delete
+    """
+
     new_identifiers = Identifiers()
     new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
     new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)

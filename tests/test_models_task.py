@@ -1578,5 +1578,38 @@ class TestFunctionBuildNonContextualIdentifiers(unittest.TestCase):    # pragma:
         self.assertTrue(label_found)
 
 
+class TestFunctionBuildContextualIdentifiers(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_basic_1(self):
+        metadata = {
+            "contextualIdentifiers": [
+                {
+                    "type": "ExecutionScope",
+                    "key": "include",
+                    "contexts": [
+                        {
+                            "type": "environment",
+                            "names": [
+                                "env1",
+                                "env2",
+                                "env3"
+                            ]
+                        },
+                        {
+                            "type": "command",
+                            "names": [
+                                "cmd1",
+                                "cmd2"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+
 if __name__ == '__main__':
     unittest.main()

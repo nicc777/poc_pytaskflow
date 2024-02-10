@@ -65,6 +65,14 @@ class IdentifierContext:
         data['ContextType'] = self.context_type
         data['ContextName'] = self.context_name
         return data
+    
+    def __eq__(self, __value: object) -> bool:
+        try:
+            if __value.context_type == self.context_type and __value.context_name == self.context_name:
+                return True
+        except:
+            pass
+        return False
 
 
 class IdentifierContexts(Sequence):
@@ -88,11 +96,13 @@ class IdentifierContexts(Sequence):
         return True
     
     def contains_identifier_context(self, target_identifier_context: IdentifierContext)->bool:
-        if target_identifier_context is not None:
-            if isinstance(target_identifier_context, IdentifierContext):
-                for local_identifier_context in self.identifier_contexts:
-                    if local_identifier_context.context() == target_identifier_context.context():
-                        return True
+        try:
+            local_identifier_context: IdentifierContext
+            for local_identifier_context in self.identifier_contexts:
+                if local_identifier_context == target_identifier_context:
+                    return True
+        except:
+            pass
         return False
     
     def to_dict(self)->dict:
@@ -148,6 +158,31 @@ class Identifier:
         data['UniqueId'] = self.unique_identifier_value
         return data
     
+    def __eq__(self, candidate_identifier: object) -> bool:
+        key_matches = False
+        val_matches = False
+        context_matches = False
+        try:
+            if candidate_identifier.identifier_type == self.identifier_type:
+                if candidate_identifier.key == self.key:
+                    key_matches = True
+                if candidate_identifier.val == self.val:
+                    val_matches = True
+                if len(candidate_identifier.identifier_contexts) == 0 and len(self.identifier_contexts) == 0:
+                    context_matches = True
+                else:
+                    candidate_context: IdentifierContext
+                    for candidate_context in candidate_identifier.identifier_contexts:
+                        if self.identifier_contexts.contains_identifier_context(target_identifier_context=candidate_context) is True:
+                            context_matches = True
+                        if key_matches is True and val_matches is True and context_matches is True:
+                            return True
+        except:
+            pass
+        if key_matches is True and val_matches is True and context_matches is True:
+            return True
+        return False
+    
 
 class Identifiers(Sequence):
 
@@ -162,6 +197,13 @@ class Identifiers(Sequence):
                 can_add = False
         if can_add is True:
             self.identifiers.append(identifier)
+
+    def identifier_found(self, identifier: Identifier)->bool:
+        local_identifier: Identifier
+        for local_identifier in self.identifiers:
+            if local_identifier == identifier:
+                return True
+        return False
 
     def identifier_matches_any_context(self, identifier_type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
         for local_identifier in self.identifiers:
@@ -556,9 +598,7 @@ class Task:
                 self.spec = keys_to_lower(data=spec)
         self.selector_register = dict()
         self.annotations = dict()
-        self.task_dependencies = dict()
-        self.task_dependencies['NamedTasks'] = list()
-        self.task_dependencies['Labels'] = list()
+        self.task_dependencies = list()
         self.task_as_dict = dict()
         self.task_contexts = ['default']
         self.task_commands = list()
@@ -572,12 +612,17 @@ class Task:
     def task_match_name(self, name: str)->bool:
         return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
 
-    
     def task_match_label(self, key: str, value: str)->bool:
-        self.logger.debug(message='[task:{}] Attempting to match label with key "{}" and value "{}"'.format(self.task_id, key, value))
-        if key in self.selector_register:
-            if value == self.selector_register[key]:
-                return True
+        # FIXME
+        return False
+    
+    def identifier_found_in_own_identifiers(self, identifier: Identifier)->bool:
+        if len(identifier.identifier_contexts) == 0:            
+            # non-contextual_match
+            pass
+        else:
+            # contextual_match
+            pass
         return False
 
     def _calculate_selector_registers(self):
@@ -603,20 +648,50 @@ class Task:
                     elif key.startswith('dependency/label') is False and key.startswith('dependency/name') is False:
                         self.annotations[key] = '{}'.format(val)
 
+
+    def _dependencies_found_in_metadata(self, meta_data: dict)->list:
+        if 'dependencies' not in self.metadata:
+            return list()
+        if self.metadata['dependencies'] is None:
+            return list()
+        if isinstance(self.metadata['dependencies'], list) is False:
+            return list()
+        return self.metadata['dependencies']
+
     def _register_dependencies(self):
-        if 'annotations' in self.metadata:
-            if isinstance(self.metadata['annotations'], dict):
-                for annotation_key, annotation_value in self.metadata['annotations'].items():
-                    if annotation_key.lower() == 'dependency/name':
-                        for item in '{}'.format(annotation_value).replace(' ', '').split(','):
-                            if len(item) > 0:
-                                self.task_dependencies['NamedTasks'].append(item)
-                    if annotation_key.lower().startswith('dependency/label/'):
-                        self.task_dependencies['Labels'].append(
-                            {
-                                '{}'.format(annotation_key.lower()): '{}'.format(annotation_value)
-                            }
-                        )
+        """
+              metadata:
+                dependencies:
+                - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
+                  identifiers:
+                  - key: STRING
+                    value: STRING                         # Optional - required for identifierType "Label"
+        """
+        for dependency in self._dependencies_found_in_metadata(meta_data=self.metadata):
+            if isinstance(dependency, dict) is True:
+                if 'identifierType' in dependency and 'identifiers' in dependency:
+                    if dependency['identifiers'] is not None and dependency['identifierType'] is not None:
+                        if isinstance(dependency['identifiers'], list) and isinstance(dependency['identifierType'], str):
+                            dependency_reference_type = dependency['identifierType']
+                            dependency_references = dependency['identifiers']
+
+                            for dependency_reference in dependency_references:
+                                if 'key' in dependency_reference:
+                                    if dependency_reference_type == 'ManifestName':
+                                        self.task_dependencies.append(
+                                            Identifier(
+                                                identifier_type='ManifestName',
+                                                key=dependency_reference['key']
+                                            )
+                                        )
+                                    if dependency_reference_type == 'Label':
+                                        self.task_dependencies.append(
+                                            Identifier(
+                                                identifier_type='Label',
+                                                key=dependency_reference['key'],
+                                                val=dependency_reference['val']
+                                            )
+                                        )
 
     def _calculate_task_checksum(self)->str:
         data = dict()
@@ -834,7 +909,7 @@ class Tasks:
         if candidate_task.task_id in ordered_list:
             self.logger.debug('_order_tasks(): Task "{}" already in ordered list.'.format(candidate_task.task_id))
             return ordered_list # Already seen...        
-        for dependant_task_name in candidate_task.task_dependencies['NamedTasks']:
+        for dependant_task_name in candidate_task.task_dependencies['Names']:
             dependant_task = self.find_task_by_name(name=dependant_task_name, calling_task_id=candidate_task.task_id)
             if dependant_task is not None:
                 self.logger.debug('_order_tasks(): Task "{}" has dependant task named "{}" with task_id "{}"'.format(candidate_task.task_id, dependant_task_name, dependant_task.task_id))
@@ -926,3 +1001,9 @@ class Tasks:
                                 task_id=task_id,
                                 logger=self.logger
                             )
+
+
+def find_all_tasks_matching_contextual_identifiers(tasks: Tasks, contextual_identifiers: Identifiers)->Tasks:
+    discovered_tasks = Tasks(logger=tasks.logger, key_value_store=tasks.key_value_store, hooks=tasks.hooks, state_persistence=tasks.state_persistence)
+
+    return discovered_tasks

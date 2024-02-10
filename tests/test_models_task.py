@@ -1462,6 +1462,21 @@ class TestClassIdentifierContext(unittest.TestCase):    # pragma: no cover
         result = ic.context()
         self.assertEqual(result, 'type1:context1')
 
+    def test_contexts_matches_1(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type1', context_name='context1')
+        self.assertTrue(ic1 == ic2)
+
+    def test_contexts_does_not_match_1(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type2', context_name='context1') # wrong context_type
+        self.assertFalse(ic1 == ic2)
+
+    def test_contexts_does_not_match_2(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type1', context_name='context2') # wrong context_name
+        self.assertFalse(ic1 == ic2)
+
 
 class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
 
@@ -1490,6 +1505,17 @@ class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
             self.assertIsInstance(ic, IdentifierContext)
             counter += 1
         self.assertEqual(counter, 2)
+
+    def test_find_matching_identifier_context_1(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type2', context_name='context2')
+        ics = IdentifierContexts()
+        ics.add_identifier_context(identifier_context=ic1)
+        ics.add_identifier_context(identifier_context=ic2)
+        matching_identifier_context = IdentifierContext(context_type='type2', context_name='context2')
+        non_matching_identifier_context = IdentifierContext(context_type='type3', context_name='context3')
+        self.assertTrue(ics.contains_identifier_context(target_identifier_context=matching_identifier_context))
+        self.assertFalse(ics.contains_identifier_context(target_identifier_context=non_matching_identifier_context))
 
 
 class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
@@ -1586,6 +1612,25 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type2', key='key1', val='val1', target_identifier_contexts=matching_ics1)) # type mismatches
         self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', val='val2', target_identifier_contexts=matching_ics1)) # val mismatches
         self.assertFalse(identifiers.identifier_matches_any_context(identifier_type='id_type1', key='key1', target_identifier_contexts=matching_ics1)) # val mismatches
+
+    def test_identifiers_matching_identifier(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type2', context_name='context2')
+        main_ics = IdentifierContexts()
+        main_ics.add_identifier_context(identifier_context=ic1)
+        main_ics.add_identifier_context(identifier_context=ic2)
+        
+        identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        identifier2 = Identifier(identifier_type='id_type2', key='key2')
+        identifiers = Identifiers()
+        identifiers.add_identifier(identifier=identifier1)
+        identifiers.add_identifier(identifier=identifier2)
+
+        matching_identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        self.assertTrue(identifiers.identifier_found(identifier=matching_identifier1))
+
+        matching_identifier2 = Identifier(identifier_type='id_type2', key='key2')
+        self.assertTrue(identifiers.identifier_found(identifier=matching_identifier2))
 
 
 class TestFunctionBuildNonContextualIdentifiers(unittest.TestCase):    # pragma: no cover

@@ -233,14 +233,21 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
         match_1 = t.task_match_name(name='test1')
         self.assertFalse(match_1)
-        log_message_match_found = False
-        for line in self.logger.debug_lines:
-            if 'This task has no name defined and a match can therefore not be made' in line:
-                log_message_match_found = True
-        self.assertTrue(log_message_match_found)
 
     def test_task_basic_init_minimal_with_name_and_labels_1(self):
-        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1', 'labels': {'label1': 'labelvalue1', 'label2': 'labelvalue2'}}, logger=self.logger)
+        metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "test1"
+                }
+            ],
+            "labels": {
+                "label1": "labelvalue1",
+                "label2": "labelvalue2"
+            }
+        }
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
         self.assertIsNotNone(t)
         self.assertIsInstance(t, Task)
         self.assertEqual(t.kind, 'TestKind')
@@ -525,9 +532,14 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test1',
-                    'annotations': {
-                        'contexts': 'c1,c2',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test1"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
                     }
                 },
                 logger=tasks.logger
@@ -556,9 +568,14 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                     version='v1',
                     spec={'field1': 'value1'},
                     metadata={
-                        'name': 'test1',
-                        'annotations': {
-                            'contexts': 'c1,c2',
+                        "identifiers": [
+                            {
+                                "type": "ManifestName",
+                                "key": "test1"
+                            }
+                        ],
+                        "annotations": {
+                            "contexts": "c1,c2",
                         }
                     },
                     logger=tasks.logger
@@ -575,10 +592,15 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test2',
-                    'annotations': {
-                        'contexts': 'c1,c2',
-                        'dependency/name': 'test1',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test2"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
+                        "dependency/name": "test1",
                     }
                 },
                 logger=tasks.logger
@@ -590,9 +612,14 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test1',
-                    'annotations': {
-                        'contexts': 'c1,c2',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test1"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
                     }
                 },
                 logger=tasks.logger
@@ -622,12 +649,17 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test1',
-                    'annotations': {
-                        'contexts': 'c1,c2',
-                        'labels': {
-                            'l1': 'lv1',
-                            'l2': 'lv2',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test1"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
+                        "labels": {
+                            "l1": "lv1",
+                            "l2": "lv2",
                         }
                     }
                 },
@@ -640,11 +672,16 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test2',
-                    'annotations': {
-                        'contexts': 'c1,c2',
-                        'dependency/label/command2/l1': 'lv1',
-                        'dependency/label/command1/l2': 'lv2',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test2"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
+                        "dependency/label/command2/l1": "lv1",
+                        "dependency/label/command1/l2": "lv2",
                     }
                 },
                 logger=tasks.logger
@@ -656,13 +693,18 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 version='v1',
                 spec={'field1': 'value1'},
                 metadata={
-                    'name': 'test3',
-                    'annotations': {
-                        'contexts': 'c1,c2',
-                        'commands': 'command1', # This puts this task out of scope for this test.
-                        'dependency/label/command1/l1': 'lv1',
-                        'labels': {
-                            'l2': 'lv2',
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test3"
+                        }
+                    ],
+                    "annotations": {
+                        "contexts": "c1,c2",
+                        "commands": "command1", # This puts this task out of scope for this test.
+                        "dependency/label/command1/l1": "lv1",
+                        "labels": {
+                            "l2": "lv2",
                         }
                     }
                 },

@@ -570,13 +570,6 @@ class Task:
         logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
 
     def task_match_name(self, name: str)->bool:
-        self.logger.debug(message='[task:{}] Attempting to match name "{}"'.format(self.task_id, name))
-        if 'name' in self.selector_register:
-            self.logger.debug(message='[task:{}] Local task name is "{}"'.format(self.task_id, self.selector_register['name']))
-            if name == self.selector_register['name']:
-                return True
-        else:
-            self.logger.debug(message='[task:{}] This task has no name defined and a match can therefore not be made.'.format(self.task_id))
         return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
 
     

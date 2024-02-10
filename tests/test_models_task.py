@@ -204,7 +204,15 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertTrue('spec' in data)
 
     def test_task_basic_init_minimal_with_name_1(self):
-        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata={'name': 'test1'}, logger=self.logger)
+        metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "test1"
+                }
+            ]
+        }
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
         self.assertIsNotNone(t)
         self.assertIsInstance(t, Task)
         self.assertEqual(t.kind, 'TestKind')

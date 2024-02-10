@@ -577,7 +577,8 @@ class Task:
                 return True
         else:
             self.logger.debug(message='[task:{}] This task has no name defined and a match can therefore not be made.'.format(self.task_id))
-        return False
+        return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
+
     
     def task_match_label(self, key: str, value: str)->bool:
         self.logger.debug(message='[task:{}] Attempting to match label with key "{}" and value "{}"'.format(self.task_id, key, value))

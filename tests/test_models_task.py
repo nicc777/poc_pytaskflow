@@ -332,7 +332,6 @@ class Processor1(TaskProcessor):
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         self.logger.info('[Processor1]: {}'.format('-'*80))
         self.logger.info('[Processor1]: Processing task_id "{}"'.format(task.task_id))
-        self.logger.info('[Processor1]:    Task Contexts "{}"'.format(task.task_contexts))
         self.logger.info('[Processor1]: command="{}"'.format(command))
         self.logger.info('[Processor1]: context="{}"'.format(context))
         current_state = state_persistence.get_object_state(object_identifier=task.task_id)
@@ -363,7 +362,6 @@ class Processor2(TaskProcessor):
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         self.logger.info('[Processor2]: {}'.format('-'*80))
         self.logger.info('[Processor2]: Processing task_id "{}"'.format(task.task_id))
-        self.logger.info('[Processor2]:    Task Contexts "{}"'.format(task.task_contexts))
         self.logger.info('[Processor2]: command="{}"'.format(command))
         self.logger.info('[Processor2]: context="{}"'.format(context))
         current_state = state_persistence.get_object_state(object_identifier=task.task_id)
@@ -398,11 +396,28 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             kind='Processor1',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test1',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
             },
             logger=p1.logger
         )

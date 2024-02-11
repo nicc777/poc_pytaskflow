@@ -862,19 +862,116 @@ class Tasks:
                 id = '{}:{}'.format(processor.kind, version)
                 self.task_processor_register[id] = executor_id
 
-    def _task_qualifies_for_contextual_processing(self, task: Task, command: str, context: str)->bool:
-        final_command_list = [copy.deepcopy(command),]
-        if len(task.task_commands) > 0:
-            final_command_list = copy.deepcopy(task.task_commands)
-        if context in task.task_contexts and command in final_command_list:
-            target_task_processor_id = '{}:{}'.format(task.kind, task.version)
-            if target_task_processor_id in self.task_processor_register:
-                target_task_processor_executor_id = self.task_processor_register[target_task_processor_id]
-                if target_task_processor_executor_id in self.task_processors_executors:
-                    target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
-                    if command in target_task_processor_executor.supported_commands:
-                        return True
-        return False
+    def _task_qualifies_for_contextual_processing(self, task: Task, processing_target_identifier: Identifier)->bool:
+        """
+            Typical configuration to take into account:
+
+                Configuration for a task:
+
+                    metadata:
+                      contextualIdentifiers:
+                      - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+                        key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+                        contexts:
+                        - type: STRING              # Example: Environment
+                          names:
+                          - STRING                  # Example: sandbox
+                          - STRING                  # Example: test
+                          - STRING                  # Example: production
+                      - type: STRING              # Example: ExecutionScope
+                        key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+                        contexts:
+                        - type: STRING              # Example: Command
+                          names:
+                          - STRING                  # Example: apply
+                          - STRING                  # Example: delete
+
+                Configuration for processing (example):
+
+                    processing_contexts = IdentifierContexts()
+                    processing_contexts.add_identifier_context(
+                        identifier_context=IdentifierContext(
+                            context_type='Environment',
+                            context_name='sandbox'
+                        )
+                    )
+                    processing_contexts.add_identifier_context(
+                        identifier_context=IdentifierContext(
+                            context_type='Command',
+                            context_name='apply'
+                        )
+                    )
+                    processing_target_identifier = Identifier(
+                        identifier_type='ExecutionScope',
+                        key='processing',
+                        identifier_contexts=processing_contexts
+                    )
+
+            The strategy is to look for some specific reason to exclude the task from processing.
+
+            Exclusions:
+
+            1) The identifiers include "contextualIdentifiers" with an "ExecutionScope" of "INCLUDE", which does NOT include the given context
+            2) The identifiers include "contextualIdentifiers" with an "ExecutionScope" of "EXCLUDE", which explicitly lists the given context
+
+            The default is to allow processing unless any of the above conditions matches.
+        """
+        qualifies = True
+
+        # Qualify the processing_target_identifier as a valid processing type identifier
+        if processing_target_identifier.identifier_type != 'ExecutionScope':
+            return qualifies
+        elif processing_target_identifier.key != 'processing':
+            return qualifies
+
+        # Extract processing command and processing environment
+        processing_command = None
+        processing_environment = None
+        processing_target_context: IdentifierContext
+        for processing_target_context in processing_target_identifier.identifier_contexts:
+            if processing_target_context.context_type == 'Command':
+                processing_command = processing_target_context.context_name
+            elif processing_target_context.context_type == 'Environment':
+                processing_environment = processing_target_context.context_name
+
+        # Extract task processing rules
+        identifier: Identifier
+        require_command_to_qualify = False
+        require_environment_to_qualify = False
+        required_commands = list()
+        required_environments = list()
+        for identifier in task.identifiers:
+            if identifier.identifier_type == processing_target_identifier.identifier_type: # ExecutionScope
+                if identifier.key == 'EXCLUDE':
+                    identifier_context: IdentifierContext
+                    for identifier_context in identifier.identifier_contexts:
+                        if identifier_context.context_type == 'Command':
+                            if identifier_context.context_name == processing_command:
+                                qualifies = False
+                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing command "{}"'.format(task.task_id, processing_command))
+                        elif identifier_context.context_type == 'Environment':
+                            if identifier_context.context_name == processing_environment:
+                                qualifies = False
+                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing environment "{}"'.format(task.task_id, processing_environment))
+                elif identifier.key == 'INCLUDE':
+                    for identifier_context in identifier.identifier_contexts:
+                        if identifier_context.context_type == 'Command':
+                            require_command_to_qualify = True
+                            required_commands.append(identifier_context.context_name)
+                        elif identifier_context.context_type == 'Environment':
+                            require_environment_to_qualify = True
+                            required_environments.append(identifier_context.context_name)
+        if qualifies is True: # Only proceed matching if qualifies is still true - no need to test if it is false
+            if require_command_to_qualify is True:
+                if processing_command not in required_commands:
+                    qualifies = False
+                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing command "{}"'.format(task.task_id, processing_command))
+            if require_environment_to_qualify is True:
+                if processing_environment not in required_environments:
+                    qualifies = False
+                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing environment "{}"'.format(task.task_id, processing_environment))
+
+        return qualifies
 
     def find_task_by_name(self, name: str, calling_task_id: str=None)->Task:
         for task_id, candidate_task in self.tasks.items():
@@ -897,49 +994,45 @@ class Tasks:
                 tasks.append(candidate_task)
         return tasks
 
-    def _order_tasks(self, ordered_list: list, candidate_task: Task, command:str)->list:
-        if candidate_task.task_id in ordered_list:
-            self.logger.debug('_order_tasks(): Task "{}" already in ordered list.'.format(candidate_task.task_id))
-            return ordered_list # Already seen...        
-        for dependant_task_name in candidate_task.task_dependencies['Names']:
-            dependant_task = self.find_task_by_name(name=dependant_task_name, calling_task_id=candidate_task.task_id)
-            if dependant_task is not None:
-                self.logger.debug('_order_tasks(): Task "{}" has dependant task named "{}" with task_id "{}"'.format(candidate_task.task_id, dependant_task_name, dependant_task.task_id))
-                if isinstance(dependant_task, Task):
-                    ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task, command=command)
-            else:
-                raise Exception('_order_tasks(): Task "{}" has dependant task named "{}" which could NOT be found'.format(candidate_task.task_id, dependant_task_name))
-        for dependant_task_label in candidate_task.task_dependencies['Labels']:
-            candidate_task_label_key = list(dependant_task_label.keys())[0] # example: 'dependency/label/command2/l1' 
-            label_key = candidate_task_label_key.split('/')[-1]             # example: 'dependency/label/command2/l1' will become "l1"
-            label_command_scope = list(dependant_task_label.keys())[0].split('/')[-2]    # example: 'dependency/label/command2/l1' will become "command2"
-            if label_command_scope == command:
-                label_value = dependant_task_label[candidate_task_label_key]
-                dependant_tasks = self.find_task_by_label_match(label_key=label_key, label_value=label_value, calling_task_id=candidate_task.task_id)
-                if len(dependant_tasks) > 0:
-                    # FIXME test test_tasks_basic_dependant_tasks_2() is supposed to cover these lines, but it doesn't yet...
-                    for dependant_task in dependant_tasks:
-                        if isinstance(dependant_task, Task):
-                            ordered_list = self._order_tasks(ordered_list=ordered_list, candidate_task=dependant_task, command=command)
+    def _order_tasks(self, ordered_list: list, candidate_task: Task, processing_target_identifier: Identifier)->list:
+        # FIXME
         ordered_list.append(candidate_task.task_id)
         return ordered_list
 
-    def calculate_current_task_order(self, command: str, context: str)->list:
+    def calculate_current_task_order(self, processing_target_identifier: Identifier)->list:
         task_order = list()
         for task_id, task in self.tasks.items():
             self.logger.debug('calculate_current_task_order(): Considering task "{}"'.format(task.task_id))
-            if self._task_qualifies_for_contextual_processing(task=task, command=command, context=context):
-                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, command=command)
+            if self._task_qualifies_for_contextual_processing(task=task, processing_target_identifier=processing_target_identifier):
+                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, processing_target_identifier=processing_target_identifier)
         return task_order
 
     def process_context(self, command: str, context: str):
-        """
-            1. Determine the order based on task dependencies
-            2. Process tasks in order, with the available task processor registered for this task kind and version
-        """
-        task_order = self.calculate_current_task_order(command=command, context=context)
+        # First, build the processing identifier object
+        processing_contexts = IdentifierContexts()
+        processing_contexts.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='Environment',
+                context_name=context
+            )
+        )
+        processing_contexts.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='Command',
+                context_name=command
+            )
+        )
+        processing_target_identifier = Identifier(
+            identifier_type='ExecutionScope',
+            key='processing',
+            identifier_contexts=processing_contexts
+        )
+
+        # Determine the order based on task dependencies
+        task_order = self.calculate_current_task_order(processing_target_identifier=processing_target_identifier)
         self.logger.debug('task_order={}'.format(task_order))
 
+        # Process tasks in order, with the available task processor registered for this task kind and version
         for task_id in task_order:
             if task_id in self.tasks:
                 task = self.tasks[task_id]

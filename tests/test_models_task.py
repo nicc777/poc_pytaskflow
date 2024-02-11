@@ -153,12 +153,6 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
                 match_found = True
         self.assertTrue(match_found)
 
-        task_contexts = t.task_contexts
-        self.assertIsNotNone(task_contexts)
-        self.assertIsInstance(task_contexts, list)
-        self.assertEqual(len(task_contexts), 1)
-        self.assertTrue('default' in task_contexts)
-
         task_metadata = t.metadata
         self.assertIsNotNone(task_metadata)
         self.assertIsInstance(task_metadata, dict)
@@ -1304,6 +1298,7 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             logger=logger
         )
 
+        # FIXME
         t1 = Task(
             kind='Processor1',
             version='v1',

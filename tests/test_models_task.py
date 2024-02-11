@@ -182,19 +182,9 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
 
         task_dependencies = t.task_dependencies
         self.assertIsNotNone(task_dependencies)
-        self.assertIsInstance(task_dependencies, dict)
-        self.assertEqual(len(task_dependencies), 2)
-        self.assertTrue('NamedTasks' in task_dependencies)
-        self.assertTrue('Labels' in task_dependencies)
-        task_dependencies_named_tasks = task_dependencies['NamedTasks']
-        self.assertIsNotNone(task_dependencies_named_tasks)
-        self.assertIsInstance(task_dependencies_named_tasks, list)
-        self.assertEqual(len(task_dependencies_named_tasks), 0)
-        task_dependencies_labels = task_dependencies['Labels']
-        self.assertIsNotNone(task_dependencies_labels)
-        self.assertIsInstance(task_dependencies_labels, list)
-        self.assertEqual(len(task_dependencies_labels), 0)
-
+        self.assertIsInstance(task_dependencies, list)
+        self.assertEqual(len(task_dependencies), 0)
+        
         data = dict(t)
         self.assertIsNotNone(data)
         self.assertIsInstance(data, dict)
@@ -240,12 +230,18 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
                 {
                     "type": "ManifestName",
                     "key": "test1"
-                }
-            ],
-            "labels": {
-                "label1": "labelvalue1",
-                "label2": "labelvalue2"
-            }
+                },
+                {
+                    "type": "Label",
+                    "key": "label1",
+                    "value": "labelvalue1"
+                },
+                {
+                    "type": "Label",
+                    "key": "label2",
+                    "value": "labelvalue2"
+                },
+            ]
         }
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
         self.assertIsNotNone(t)
@@ -275,12 +271,44 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
             kind='TestKind',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test1',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'name1,name2',
-                    'dependency/label/labelname1': 'labelvalue1',
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "name1" },
+                            { "key": "name2" },
+                        ]
+                    },
+                    {
+                        "identifierType": "Label",
+                        "identifiers": [
+                            { "key": "labelname1", "value": "labelvalue1" },
+                        ]
+                    }
+                ],
+                "annotations": {
                     custom_annotation_name: custom_annotation_value,
                 }
             },
@@ -290,41 +318,16 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         custom_annotations = t.annotations
         self.assertIsNotNone(custom_annotations)
         self.assertIsInstance(custom_annotations, dict)
-        self.assertEqual(len(custom_annotations), 2, 'custom_annotations: {}'.format(custom_annotations))
+        self.assertEqual(len(custom_annotations), 1, 'custom_annotations: {}'.format(custom_annotations))
         self.assertTrue(custom_annotation_name in custom_annotations)
         self.assertEqual(custom_annotations[custom_annotation_name], custom_annotation_value)
 
-        contexts = t.task_contexts
-        self.assertIsNotNone(contexts)
-        self.assertIsInstance(contexts, list)
-        self.assertEqual(len(contexts), 2, 'contexts: {}'.format(contexts))
-        self.assertTrue('c1' in contexts)
-        self.assertTrue('c2' in contexts)
-
         dependencies = t.task_dependencies
         self.assertIsNotNone(dependencies)
-        self.assertIsInstance(dependencies, dict)
-        self.assertEqual(len(dependencies), 2, 'dependencies: {}'.format(dependencies))
-        self.assertTrue('NamedTasks' in dependencies)
-        self.assertTrue('Labels' in dependencies)
-        
-        dependencies_labels = dependencies['Labels']
-        self.assertIsNotNone(dependencies_labels)
-        self.assertIsInstance(dependencies_labels, list)
-        self.assertEqual(len(dependencies_labels), 1, 'dependencies_labels: {}'.format(dependencies_labels))
-        dependency_label_1 = dependencies_labels[0]
-        self.assertIsNotNone(dependency_label_1)
-        self.assertIsInstance(dependency_label_1, dict)
-        self.assertEqual(len(dependency_label_1), 1, 'dependency_label_1: {}'.format(dependency_label_1))
-        self.assertTrue('dependency/label/labelname1' in dependency_label_1, 'dependency_label_1: {}'.format(dependency_label_1))
-        self.assertEqual(dependency_label_1['dependency/label/labelname1'], 'labelvalue1')
-
-        dependencies_names_of_tasks = dependencies['NamedTasks']
-        self.assertIsNotNone(dependencies_names_of_tasks)
-        self.assertIsInstance(dependencies_names_of_tasks, list)
-        self.assertEqual(len(dependencies_names_of_tasks), 2, 'dependencies_names_of_tasks: {}'.format(dependencies_names_of_tasks))
-        self.assertTrue('name1' in dependencies_names_of_tasks)
-        self.assertTrue('name2' in dependencies_names_of_tasks)
+        self.assertIsInstance(dependencies, list)
+        self.assertEqual(len(dependencies), 3, 'dependencies: {}'.format(dependencies))
+        for dependency in dependencies:
+            self.assertIsInstance(dependency, Identifier)
 
 
 class Processor1(TaskProcessor):

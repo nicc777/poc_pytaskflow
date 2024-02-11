@@ -460,6 +460,8 @@ def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identi
                     val = None
                     if 'val' in identifier_data:
                         val = identifier_data['val']
+                    if 'value' in identifier_data:
+                        val = identifier_data['value']
                     new_identifiers.add_identifier(identifier=Identifier(identifier_type=identifier_data['type'], key=identifier_data['key'], val=val))
 
     return new_identifiers
@@ -600,11 +602,9 @@ class Task:
         self.annotations = dict()
         self.task_dependencies = list()
         self.task_as_dict = dict()
-        self.task_contexts = ['default']
-        self.task_commands = list()
         self._calculate_selector_registers()
-        self._register_annotations()
         self._register_dependencies()
+        self._register_annotations()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
         logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
@@ -613,8 +613,7 @@ class Task:
         return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
 
     def task_match_label(self, key: str, value: str)->bool:
-        # FIXME
-        return False
+        return self.identifiers.identifier_matches_any_context(identifier_type='Label', key=key, val=value)
     
     def identifier_found_in_own_identifiers(self, identifier: Identifier)->bool:
         if len(identifier.identifier_contexts) == 0:            
@@ -625,6 +624,16 @@ class Task:
             pass
         return False
 
+    def _register_annotations(self):
+        if 'annotations' not in self.metadata:
+            return
+        if self.metadata['annotations'] is None:
+            return
+        if isinstance(self.metadata['annotations'], dict) is False:
+            return
+        for annotation_key, annotation_value in self.metadata['annotations'].items():
+            self.annotations[annotation_key] = '{}'.format(annotation_value)
+
     def _calculate_selector_registers(self):
         if 'name' in self.metadata:
             self.selector_register['name'] = '{}'.format(self.metadata['name'])
@@ -632,22 +641,6 @@ class Task:
             if isinstance(self.metadata['labels'], dict):
                 for label_key, label_value in self.metadata['labels'].items():
                     self.selector_register[label_key] = '{}'.format(label_value)
-    
-    def _register_annotations(self):
-        if 'annotations' in self.metadata:
-            if isinstance(self.metadata['annotations'], dict):
-                for key, val in self.metadata['annotations'].items():
-                    if key == 'contexts':
-                        for item in '{}'.format(val).replace(' ', '').split(','):
-                            if 'default' in self.task_contexts and len(self.task_contexts) == 1 and item != 'default':
-                                self.task_contexts = list()
-                            self.task_contexts.append(item)
-                    if key == 'commands':
-                        for item in '{}'.format(val).replace(' ', '').split(','):
-                            self.task_commands.append(item)
-                    elif key.startswith('dependency/label') is False and key.startswith('dependency/name') is False:
-                        self.annotations[key] = '{}'.format(val)
-
 
     def _dependencies_found_in_metadata(self, meta_data: dict)->list:
         if 'dependencies' not in self.metadata:
@@ -674,7 +667,6 @@ class Task:
                         if isinstance(dependency['identifiers'], list) and isinstance(dependency['identifierType'], str):
                             dependency_reference_type = dependency['identifierType']
                             dependency_references = dependency['identifiers']
-
                             for dependency_reference in dependency_references:
                                 if 'key' in dependency_reference:
                                     if dependency_reference_type == 'ManifestName':
@@ -689,7 +681,7 @@ class Task:
                                             Identifier(
                                                 identifier_type='Label',
                                                 key=dependency_reference['key'],
-                                                val=dependency_reference['val']
+                                                val=dependency_reference['value']
                                             )
                                         )
 

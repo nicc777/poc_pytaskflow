@@ -964,10 +964,36 @@ class Tasks:
             if candidate_task.task_match_label(key=label_key, value=label_value) is True:
                 tasks.append(candidate_task)
         return tasks
+    
+    def get_task_by_task_id(self, task_id: str)->Task:
+        task: Task
+        for task in self.tasks:
+            if task.task_id == task_id:
+                return task
+        raise Exception('Task with task_id "{}" NOT FOUND'.format(task_id))
+
+    def find_tasks_matching_identifier_and_return_list_of_task_ids(self, identifier: Identifier)->list:
+        tasks_found = list()
+        task: Task
+        for task in self.tasks:
+            if task.match_name_or_label_identifier(identifier=identifier) is True:
+                tasks_found.append(task.task_id)
+        return tasks_found
 
     def _order_tasks(self, ordered_list: list, candidate_task: Task, processing_target_identifier: Identifier)->list:
         new_ordered_list = copy.deepcopy(ordered_list)
-        # FIXME
+        task_dependency_identifier: Identifier
+        for task_dependency_identifier in candidate_task.task_dependencies:
+            candidate_dependant_task_id: str
+            if candidate_dependant_task_id not in new_ordered_list:
+                for candidate_dependant_task_id in self.find_tasks_matching_identifier_and_return_list_of_task_ids(identifier=task_dependency_identifier):
+                    dependant_candidate_task = self.get_task_by_task_id(task_id=candidate_dependant_task_id)
+                    if dependant_candidate_task.task_qualifies_for_processing(processing_target_identifier=processing_target_identifier) is True:
+                        if dependant_candidate_task not in new_ordered_list:
+                            new_ordered_list = self._order_tasks(ordered_list=copy.deepcopy(new_ordered_list), candidate_task=dependant_candidate_task, processing_target_identifier=processing_target_identifier)
+                        new_ordered_list.append(candidate_dependant_task_id)
+                    else:
+                        raise Exception('Dependant task "{}" has Task "{}" as dependency, but the dependant task is not in scope for processing - cannot proceed. Either remove the task dependency or adjust the execution scope of the dependant task.'.format(candidate_task.task_id, candidate_dependant_task_id))
         new_ordered_list.append(candidate_task.task_id)
         return ordered_list
 

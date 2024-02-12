@@ -583,6 +583,7 @@ class Task:
                 spec:
                   ... as required by the TaskProcessor ...
         """
+        self.task_can_be_persisted = False
         self.logger = logger
         self.kind = kind
         self.version = version
@@ -598,12 +599,9 @@ class Task:
         if spec is not None:
             if isinstance(spec, dict):
                 self.spec = keys_to_lower(data=spec)
-        self.selector_register = dict()
         self.annotations = dict()
         self.task_dependencies = list()
         self.task_as_dict = dict()
-        self._calculate_selector_registers()
-        self._register_dependencies()
         self._register_annotations()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
@@ -615,13 +613,85 @@ class Task:
     def task_match_label(self, key: str, value: str)->bool:
         return self.identifiers.identifier_matches_any_context(identifier_type='Label', key=key, val=value)
     
-    def identifier_found_in_own_identifiers(self, identifier: Identifier)->bool:
-        if len(identifier.identifier_contexts) == 0:            
-            # non-contextual_match
-            pass
-        else:
-            # contextual_match
-            pass
+    def task_qualifies_for_processing(self, processing_target_identifier: Identifier)->bool:
+        qualifies = True
+
+        # Qualify the processing_target_identifier as a valid processing type identifier
+        if processing_target_identifier.identifier_type != 'ExecutionScope':
+            return qualifies
+        elif processing_target_identifier.key != 'processing':
+            return qualifies
+
+        # Extract processing command and processing environment
+        processing_command = None
+        processing_environment = None
+        processing_target_context: IdentifierContext
+        for processing_target_context in processing_target_identifier.identifier_contexts:
+            if processing_target_context.context_type == 'Command':
+                processing_command = processing_target_context.context_name
+            elif processing_target_context.context_type == 'Environment':
+                processing_environment = processing_target_context.context_name
+
+        # Extract task processing rules
+        candidate_identifier: Identifier
+        require_command_to_qualify = False
+        require_environment_to_qualify = False
+        required_commands = list()
+        required_environments = list()
+        for candidate_identifier in self.identifiers:
+            if candidate_identifier.identifier_type == processing_target_identifier.identifier_type: # ExecutionScope
+                if candidate_identifier.key == 'EXCLUDE':
+                    candidate_identifier_context: IdentifierContext
+                    for candidate_identifier_context in candidate_identifier.identifier_contexts:
+                        if candidate_identifier_context.context_type == 'Command':
+                            if candidate_identifier_context.context_name == processing_command:
+                                qualifies = False
+                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing command "{}"'.format(self.task_id, processing_command))
+                        elif candidate_identifier_context.context_type == 'Environment':
+                            if candidate_identifier_context.context_name == processing_environment:
+                                qualifies = False
+                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing environment "{}"'.format(self.task_id, processing_environment))
+                elif candidate_identifier.key == 'INCLUDE':
+                    for candidate_identifier_context in candidate_identifier.identifier_contexts:
+                        if candidate_identifier_context.context_type == 'Command':
+                            require_command_to_qualify = True
+                            required_commands.append(candidate_identifier_context.context_name)
+                        elif candidate_identifier_context.context_type == 'Environment':
+                            require_environment_to_qualify = True
+                            required_environments.append(candidate_identifier_context.context_name)
+        if qualifies is True: # Only proceed matching if qualifies is still true - no need to test if it is false
+            if require_command_to_qualify is True:
+                if processing_command not in required_commands:
+                    qualifies = False
+                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing command "{}"'.format(self.task_id, processing_command))
+            if require_environment_to_qualify is True:
+                if processing_environment not in required_environments:
+                    qualifies = False
+                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing environment "{}"'.format(self.task_id, processing_environment))
+
+        return qualifies
+
+    def match_name_or_label_identifier(self, identifier: Identifier)->bool:
+        # Determine if this task can be processed given the processing identifier.
+        if identifier.identifier_type == 'ExecutionScope' and identifier.key == 'processing':
+            return self.task_qualifies_for_processing(processing_target_identifier=identifier)
+
+        # Only process if input identifier is of a name or label type        
+        if identifier.identifier_type not in ('ManifestName', 'Label',):
+            return False
+        
+        # name or label match logic
+        task_identifier: Identifier
+        for task_identifier in self.identifiers:
+            if task_identifier.identifier_type != 'ExecutionScope' and task_identifier.key != 'processing':
+                if len(identifier.identifier_contexts) == 0:            
+                    if task_identifier.identifier_type == 'ManifestName':
+                        if task_identifier.key == identifier.key:
+                            return True
+                    elif task_identifier.identifier_type == 'Label':
+                        if task_identifier.key == identifier.key and task_identifier.val == identifier.val:
+                            return True
+        
         return False
 
     def _register_annotations(self):
@@ -633,14 +703,6 @@ class Task:
             return
         for annotation_key, annotation_value in self.metadata['annotations'].items():
             self.annotations[annotation_key] = '{}'.format(annotation_value)
-
-    def _calculate_selector_registers(self):
-        if 'name' in self.metadata:
-            self.selector_register['name'] = '{}'.format(self.metadata['name'])
-        if 'labels' in self.metadata:
-            if isinstance(self.metadata['labels'], dict):
-                for label_key, label_value in self.metadata['labels'].items():
-                    self.selector_register[label_key] = '{}'.format(label_value)
 
     def _dependencies_found_in_metadata(self, meta_data: dict)->list:
         if 'dependencies' not in self.metadata:
@@ -697,10 +759,30 @@ class Task:
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
 
     def _determine_task_id(self):
-        self.task_checksum = self._calculate_task_checksum()
-        if 'name' in self.selector_register:
-            return hashlib.sha256(self.selector_register['name'].encode('utf-8')).hexdigest()
-        return copy.deepcopy(self.task_checksum)
+        """
+                  identifiers:                    # Non-contextual identifier
+                  - type: STRING                  # Example: ManifestName
+                    key: STRING                   # Example: my-manifest
+                    value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
+                  - type: STRING                  # Example: Label
+                    key: STRING                   # Example: my-key
+                    value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+        """
+        task_id = self._calculate_task_checksum()
+        self.task_checksum = copy.deepcopy(task_id)
+        
+        identifier: Identifier
+        for identifier in self.identifiers:
+            if len(identifier.identifier_contexts) == 0:            
+                if identifier.identifier_type == 'ManifestName':
+                    if identifier.key is not None:
+                        if isinstance(identifier.key, str) is True:
+                            if len(identifier.key) > 0:
+                                task_id = copy.deepcopy(identifier.key)
+                                self.task_can_be_persisted = True
+        if self.task_can_be_persisted is False:
+            self.logger.warning(message='Task "{}" is NOT a named task and can therefore NOT be persisted.'.format(task_id))
+        return task_id
         
     def __iter__(self):
         for k,v in self.task_as_dict.items():
@@ -862,117 +944,6 @@ class Tasks:
                 id = '{}:{}'.format(processor.kind, version)
                 self.task_processor_register[id] = executor_id
 
-    def _task_qualifies_for_contextual_processing(self, task: Task, processing_target_identifier: Identifier)->bool:
-        """
-            Typical configuration to take into account:
-
-                Configuration for a task:
-
-                    metadata:
-                      contextualIdentifiers:
-                      - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-                        key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-                        contexts:
-                        - type: STRING              # Example: Environment
-                          names:
-                          - STRING                  # Example: sandbox
-                          - STRING                  # Example: test
-                          - STRING                  # Example: production
-                      - type: STRING              # Example: ExecutionScope
-                        key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-                        contexts:
-                        - type: STRING              # Example: Command
-                          names:
-                          - STRING                  # Example: apply
-                          - STRING                  # Example: delete
-
-                Configuration for processing (example):
-
-                    processing_contexts = IdentifierContexts()
-                    processing_contexts.add_identifier_context(
-                        identifier_context=IdentifierContext(
-                            context_type='Environment',
-                            context_name='sandbox'
-                        )
-                    )
-                    processing_contexts.add_identifier_context(
-                        identifier_context=IdentifierContext(
-                            context_type='Command',
-                            context_name='apply'
-                        )
-                    )
-                    processing_target_identifier = Identifier(
-                        identifier_type='ExecutionScope',
-                        key='processing',
-                        identifier_contexts=processing_contexts
-                    )
-
-            The strategy is to look for some specific reason to exclude the task from processing.
-
-            Exclusions:
-
-            1) The identifiers include "contextualIdentifiers" with an "ExecutionScope" of "INCLUDE", which does NOT include the given context
-            2) The identifiers include "contextualIdentifiers" with an "ExecutionScope" of "EXCLUDE", which explicitly lists the given context
-
-            The default is to allow processing unless any of the above conditions matches.
-        """
-        qualifies = True
-
-        # Qualify the processing_target_identifier as a valid processing type identifier
-        if processing_target_identifier.identifier_type != 'ExecutionScope':
-            return qualifies
-        elif processing_target_identifier.key != 'processing':
-            return qualifies
-
-        # Extract processing command and processing environment
-        processing_command = None
-        processing_environment = None
-        processing_target_context: IdentifierContext
-        for processing_target_context in processing_target_identifier.identifier_contexts:
-            if processing_target_context.context_type == 'Command':
-                processing_command = processing_target_context.context_name
-            elif processing_target_context.context_type == 'Environment':
-                processing_environment = processing_target_context.context_name
-
-        # Extract task processing rules
-        identifier: Identifier
-        require_command_to_qualify = False
-        require_environment_to_qualify = False
-        required_commands = list()
-        required_environments = list()
-        for identifier in task.identifiers:
-            if identifier.identifier_type == processing_target_identifier.identifier_type: # ExecutionScope
-                if identifier.key == 'EXCLUDE':
-                    identifier_context: IdentifierContext
-                    for identifier_context in identifier.identifier_contexts:
-                        if identifier_context.context_type == 'Command':
-                            if identifier_context.context_name == processing_command:
-                                qualifies = False
-                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing command "{}"'.format(task.task_id, processing_command))
-                        elif identifier_context.context_type == 'Environment':
-                            if identifier_context.context_name == processing_environment:
-                                qualifies = False
-                                self.logger.info('Task "{}" disqualified from processing by explicit exclusion of processing environment "{}"'.format(task.task_id, processing_environment))
-                elif identifier.key == 'INCLUDE':
-                    for identifier_context in identifier.identifier_contexts:
-                        if identifier_context.context_type == 'Command':
-                            require_command_to_qualify = True
-                            required_commands.append(identifier_context.context_name)
-                        elif identifier_context.context_type == 'Environment':
-                            require_environment_to_qualify = True
-                            required_environments.append(identifier_context.context_name)
-        if qualifies is True: # Only proceed matching if qualifies is still true - no need to test if it is false
-            if require_command_to_qualify is True:
-                if processing_command not in required_commands:
-                    qualifies = False
-                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing command "{}"'.format(task.task_id, processing_command))
-            if require_environment_to_qualify is True:
-                if processing_environment not in required_environments:
-                    qualifies = False
-                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing environment "{}"'.format(task.task_id, processing_environment))
-
-        return qualifies
-
     def find_task_by_name(self, name: str, calling_task_id: str=None)->Task:
         for task_id, candidate_task in self.tasks.items():
             process = True
@@ -995,15 +966,18 @@ class Tasks:
         return tasks
 
     def _order_tasks(self, ordered_list: list, candidate_task: Task, processing_target_identifier: Identifier)->list:
+        new_ordered_list = copy.deepcopy(ordered_list)
         # FIXME
-        ordered_list.append(candidate_task.task_id)
+        new_ordered_list.append(candidate_task.task_id)
         return ordered_list
 
     def calculate_current_task_order(self, processing_target_identifier: Identifier)->list:
         task_order = list()
+        task_id: str
+        task: Task
         for task_id, task in self.tasks.items():
             self.logger.debug('calculate_current_task_order(): Considering task "{}"'.format(task.task_id))
-            if self._task_qualifies_for_contextual_processing(task=task, processing_target_identifier=processing_target_identifier):
+            if task.task_qualifies_for_processing(processing_target_identifier=processing_target_identifier) is True:
                 task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, processing_target_identifier=processing_target_identifier)
         return task_order
 

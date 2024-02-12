@@ -164,11 +164,6 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertEqual(len(task_spec), 1)
         self.assertTrue(spec_test_field_name.lower() in task_spec)
 
-        task_selector_register = t.selector_register
-        self.assertIsNotNone(task_selector_register)
-        self.assertIsInstance(task_selector_register, dict)
-        self.assertEqual(len(task_selector_register), 0)
-
         task_annotations = t.annotations
         self.assertIsNotNone(task_annotations)
         self.assertIsInstance(task_annotations, dict)

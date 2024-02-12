@@ -663,11 +663,11 @@ class Task:
             if require_command_to_qualify is True:
                 if processing_command not in required_commands:
                     qualifies = False
-                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing command "{}"'.format(self.task_id, processing_command))
+                    self.logger.info('Task "{}" disqualified from processing because  processing command "{}" was not included in the relevant context'.format(self.task_id, processing_command))
             if require_environment_to_qualify is True:
                 if processing_environment not in required_environments:
                     qualifies = False
-                    self.logger.info('Task "{}" disqualified from processing by exclusion of processing environment "{}"'.format(self.task_id, processing_environment))
+                    self.logger.info('Task "{}" disqualified from processing by environment "{}" not been defined in the relevant context'.format(self.task_id, processing_environment))
 
         return qualifies
 

@@ -701,26 +701,127 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
         tasks.register_task_processor(processor=Processor1())
         tasks.register_task_processor(processor=Processor2())
+
+        task_1_metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "test1"
+                },
+                {
+                    "type": "Label",
+                    "key": "l1",
+                    "value": "lv1"
+                },
+                {
+                    "type": "Label",
+                    "key": "l2",
+                    "value": "lv2"
+                },
+            ],
+            "contextualIdentifiers": [
+                {
+                    "type": "ExecutionScope",
+                    "key": "INCLUDE",
+                    "contexts": [
+                        {
+                            "type": "Environment",
+                            "names": [
+                                "c1",
+                                "c2"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+        task_2_metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "test2"
+                },
+                {
+                    "type": "Label",
+                    "key": "l1",
+                    "value": "lv1"
+                },
+                {
+                    "type": "Label",
+                    "key": "l2",
+                    "value": "lv2"
+                },
+            ],
+            "contextualIdentifiers": [
+                {
+                    "type": "ExecutionScope",
+                    "key": "INCLUDE",
+                    "contexts": [
+                        {
+                            "type": "Environment",
+                            "names": [
+                                "c1",
+                                "c2"
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "dependencies": [
+                {
+                    "identifierType": "Label",
+                    "identifiers": [
+                        { "key": "l1", "value": "lv1" },
+                        { "key": "l2", "value": "lv2" },
+                    ]
+                }
+            ]
+        }
+        task_3_metadata = {
+            "identifiers": [
+                {
+                    "type": "ManifestName",
+                    "key": "test3"
+                },
+            ],
+            "contextualIdentifiers": [
+                {
+                    "type": "ExecutionScope",
+                    "key": "INCLUDE",
+                    "contexts": [
+                        {
+                            "type": "Environment",
+                            "names": [
+                                "c1",
+                                "c2"
+                            ]
+                        },
+                        {
+                            "type": "Command",
+                            "names": ["command1",]
+                        }
+                    ]
+                }
+            ],
+            "dependencies": [
+                {
+                    "identifierType": "ManifestName",
+                    "identifiers": [
+                        { "key": "test2" },
+                    ]
+                },
+            ]
+        }
+
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
         tasks.add_task(
             task=Task(
                 kind='Processor1',
                 version='v1',
                 spec={'field1': 'value1'},
-                metadata={
-                    "identifiers": [
-                        {
-                            "type": "ManifestName",
-                            "key": "test1"
-                        }
-                    ],
-                    "annotations": {
-                        "contexts": "c1,c2",
-                        "labels": {
-                            "l1": "lv1",
-                            "l2": "lv2",
-                        }
-                    }
-                },
+                metadata=task_1_metadata,
                 logger=tasks.logger
             )
         )
@@ -729,19 +830,7 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 kind='Processor2',
                 version='v1',
                 spec={'field1': 'value1'},
-                metadata={
-                    "identifiers": [
-                        {
-                            "type": "ManifestName",
-                            "key": "test2"
-                        }
-                    ],
-                    "annotations": {
-                        "contexts": "c1,c2",
-                        "dependency/label/command2/l1": "lv1",
-                        "dependency/label/command1/l2": "lv2",
-                    }
-                },
+                metadata=task_2_metadata,
                 logger=tasks.logger
             )
         )
@@ -750,22 +839,7 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 kind='Processor2',
                 version='v1',
                 spec={'field1': 'value1'},
-                metadata={
-                    "identifiers": [
-                        {
-                            "type": "ManifestName",
-                            "key": "test3"
-                        }
-                    ],
-                    "annotations": {
-                        "contexts": "c1,c2",
-                        "commands": "command1", # This puts this task out of scope for this test.
-                        "dependency/label/command1/l1": "lv1",
-                        "labels": {
-                            "l2": "lv2",
-                        }
-                    }
-                },
+                metadata=task_3_metadata,
                 logger=tasks.logger
             )
         )
@@ -773,7 +847,8 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         key_value_store = tasks.key_value_store
         logger = tasks.logger
 
-        order = tasks.calculate_current_task_order(command='command2', context='c1')
+        # order = tasks.calculate_current_task_order(command='command2', context='c1')
+        order = tasks.calculate_current_task_order(processing_target_identifier=build_command_identifier(command='command2', context='c1'))
         print('order={}'.format(order))
 
         tasks.process_context(command='command2', context='c1')

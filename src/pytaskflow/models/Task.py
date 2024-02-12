@@ -603,6 +603,7 @@ class Task:
         self.task_dependencies = list()
         self.task_as_dict = dict()
         self._register_annotations()
+        self._register_dependencies()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
         logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
@@ -660,11 +661,11 @@ class Task:
                             require_environment_to_qualify = True
                             required_environments.append(candidate_identifier_context.context_name)
         if qualifies is True: # Only proceed matching if qualifies is still true - no need to test if it is false
-            if require_command_to_qualify is True:
+            if require_command_to_qualify is True and len(required_commands) > 0:
                 if processing_command not in required_commands:
                     qualifies = False
                     self.logger.info('Task "{}" disqualified from processing because  processing command "{}" was not included in the relevant context'.format(self.task_id, processing_command))
-            if require_environment_to_qualify is True:
+            if require_environment_to_qualify is True and len(required_environments) > 0:
                 if processing_environment not in required_environments:
                     qualifies = False
                     self.logger.info('Task "{}" disqualified from processing by environment "{}" not been defined in the relevant context'.format(self.task_id, processing_environment))
@@ -858,6 +859,28 @@ def hook_function_always_throw_exception(
     raise Exception(exception_message)
 
 
+def build_command_identifier(command: str, context: str)->Identifier:
+    processing_contexts = IdentifierContexts()
+    processing_contexts.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Environment',
+            context_name=context
+        )
+    )
+    processing_contexts.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Command',
+            context_name=command
+        )
+    )
+    processing_target_identifier = Identifier(
+        identifier_type='ExecutionScope',
+        key='processing',
+        identifier_contexts=processing_contexts
+    )
+    return processing_target_identifier
+
+
 class Tasks:
 
     """
@@ -966,16 +989,15 @@ class Tasks:
         return tasks
     
     def get_task_by_task_id(self, task_id: str)->Task:
-        task: Task
-        for task in self.tasks:
-            if task.task_id == task_id:
-                return task
+        if task_id in self.tasks:
+            return self.tasks[task_id]
         raise Exception('Task with task_id "{}" NOT FOUND'.format(task_id))
 
     def find_tasks_matching_identifier_and_return_list_of_task_ids(self, identifier: Identifier)->list:
         tasks_found = list()
+        task_id: str
         task: Task
-        for task in self.tasks:
+        for task_id, task in self.tasks.items():
             if task.match_name_or_label_identifier(identifier=identifier) is True:
                 tasks_found.append(task.task_id)
         return tasks_found
@@ -985,17 +1007,18 @@ class Tasks:
         task_dependency_identifier: Identifier
         for task_dependency_identifier in candidate_task.task_dependencies:
             candidate_dependant_task_id: str
-            if candidate_dependant_task_id not in new_ordered_list:
-                for candidate_dependant_task_id in self.find_tasks_matching_identifier_and_return_list_of_task_ids(identifier=task_dependency_identifier):
+            for candidate_dependant_task_id in self.find_tasks_matching_identifier_and_return_list_of_task_ids(identifier=task_dependency_identifier):
+                if candidate_dependant_task_id not in new_ordered_list:
                     dependant_candidate_task = self.get_task_by_task_id(task_id=candidate_dependant_task_id)
                     if dependant_candidate_task.task_qualifies_for_processing(processing_target_identifier=processing_target_identifier) is True:
                         if dependant_candidate_task not in new_ordered_list:
-                            new_ordered_list = self._order_tasks(ordered_list=copy.deepcopy(new_ordered_list), candidate_task=dependant_candidate_task, processing_target_identifier=processing_target_identifier)
-                        new_ordered_list.append(candidate_dependant_task_id)
+                            #new_ordered_list = self._order_tasks(ordered_list=copy.deepcopy(new_ordered_list), candidate_task=dependant_candidate_task, processing_target_identifier=processing_target_identifier)
+                            new_ordered_list.append(candidate_dependant_task_id)
                     else:
                         raise Exception('Dependant task "{}" has Task "{}" as dependency, but the dependant task is not in scope for processing - cannot proceed. Either remove the task dependency or adjust the execution scope of the dependant task.'.format(candidate_task.task_id, candidate_dependant_task_id))
-        new_ordered_list.append(candidate_task.task_id)
-        return ordered_list
+        if candidate_task.task_id not in new_ordered_list:
+            new_ordered_list.append(candidate_task.task_id)
+        return new_ordered_list
 
     def calculate_current_task_order(self, processing_target_identifier: Identifier)->list:
         task_order = list()
@@ -1004,32 +1027,17 @@ class Tasks:
         for task_id, task in self.tasks.items():
             self.logger.debug('calculate_current_task_order(): Considering task "{}"'.format(task.task_id))
             if task.task_qualifies_for_processing(processing_target_identifier=processing_target_identifier) is True:
-                task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, processing_target_identifier=processing_target_identifier)
+                if task.task_id not in task_order:
+                    task_order = self._order_tasks(ordered_list=task_order, candidate_task=task, processing_target_identifier=processing_target_identifier)
         return task_order
 
     def process_context(self, command: str, context: str):
         # First, build the processing identifier object
-        processing_contexts = IdentifierContexts()
-        processing_contexts.add_identifier_context(
-            identifier_context=IdentifierContext(
-                context_type='Environment',
-                context_name=context
-            )
-        )
-        processing_contexts.add_identifier_context(
-            identifier_context=IdentifierContext(
-                context_type='Command',
-                context_name=command
-            )
-        )
-        processing_target_identifier = Identifier(
-            identifier_type='ExecutionScope',
-            key='processing',
-            identifier_contexts=processing_contexts
-        )
+        processing_target_identifier = build_command_identifier(command=command, context=context)
 
         # Determine the order based on task dependencies
         task_order = self.calculate_current_task_order(processing_target_identifier=processing_target_identifier)
+        task_order = list(dict.fromkeys(task_order))    # de-duplicate
         self.logger.debug('task_order={}'.format(task_order))
 
         # Process tasks in order, with the available task processor registered for this task kind and version

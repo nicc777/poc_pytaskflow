@@ -181,7 +181,7 @@ class Identifier:
                             context_matches = True
                         if key_matches is True and val_matches is True and context_matches is True:
                             return True
-        except:
+        except: # pragma: no cover
             pass
         if key_matches is True and val_matches is True and context_matches is True:
             return True

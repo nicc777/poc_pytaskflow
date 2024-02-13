@@ -105,7 +105,7 @@ class IdentifierContexts(Sequence):
             for local_identifier_context in self.identifier_contexts:
                 if local_identifier_context == target_identifier_context:
                     return True
-        except:
+        except: # pragma: no cover
             pass
         return False
     

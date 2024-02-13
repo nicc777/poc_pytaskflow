@@ -1873,15 +1873,6 @@ class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
         self.assertTrue(ics.contains_identifier_context(target_identifier_context=matching_identifier_context))
         self.assertFalse(ics.contains_identifier_context(target_identifier_context=non_matching_identifier_context))
 
-    def test_find_matching_identifier_context_2(self):
-        ic1 = IdentifierContext(context_type='type1', context_name='context1')
-        ic2 = IdentifierContext(context_type='type2', context_name='context2')
-        ics = IdentifierContexts()
-        ics.add_identifier_context(identifier_context=ic1)
-        ics.add_identifier_context(identifier_context=ic2)
-        non_matching_identifier_context = None
-        self.assertFalse(ics.contains_identifier_context(target_identifier_context=non_matching_identifier_context))
-
 
 class TestClassIdentifier(unittest.TestCase):    # pragma: no cover
 

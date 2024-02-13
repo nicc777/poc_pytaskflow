@@ -1815,6 +1815,11 @@ class TestClassIdentifierContext(unittest.TestCase):    # pragma: no cover
         ic2 = IdentifierContext(context_type='type1', context_name='context2') # wrong context_name
         self.assertFalse(ic1 == ic2)
 
+    def test_contexts_does_not_match_3(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = None # Force exception, which is silently ignored
+        self.assertFalse(ic1 == ic2)
+
 
 class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
 

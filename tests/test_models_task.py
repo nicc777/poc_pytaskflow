@@ -1148,12 +1148,36 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1212,12 +1236,36 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1253,12 +1301,36 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1294,12 +1366,36 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1338,12 +1434,36 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1384,12 +1504,36 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             kind='Processor2',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test2',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                    'dependency/name': 'test1',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test2"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "test1" },
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1448,11 +1592,28 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             kind='Processor1',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test1',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1517,11 +1678,28 @@ class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # prag
             kind='Processor1',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test1',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ]
             },
             logger=logger
         )
@@ -1559,11 +1737,28 @@ class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # prag
             kind='Processor1',
             version='v1',
             spec={'field1': 'value1'},
-            metadata={
-                'name': 'test1',
-                'annotations': {
-                    'contexts': 'c1,c2',
-                }
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ]
             },
             logger=logger
         )

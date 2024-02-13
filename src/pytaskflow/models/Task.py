@@ -977,17 +977,7 @@ class Tasks:
                 if candidate_task.task_match_name(name=name) is True:
                     return candidate_task
         return None
-    
-    def find_task_by_label_match(self, label_key: str, label_value: str, calling_task_id: str=None)->list:
-        tasks = list()
-        for task_id, candidate_task in self.tasks.items():
-            if calling_task_id is not None:
-                if calling_task_id == task_id:
-                    return list()
-            if candidate_task.task_match_label(key=label_key, value=label_value) is True:
-                tasks.append(candidate_task)
-        return tasks
-    
+       
     def get_task_by_task_id(self, task_id: str)->Task:
         if task_id in self.tasks:
             return self.tasks[task_id]

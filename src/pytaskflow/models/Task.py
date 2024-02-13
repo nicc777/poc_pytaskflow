@@ -83,6 +83,10 @@ class IdentifierContexts(Sequence):
 
     def add_identifier_context(self, identifier_context: IdentifierContext):
         duplicates = False
+        if identifier_context is None:
+            return
+        if isinstance(identifier_context, IdentifierContext) is False:
+            return
         for existing_identifier_context in self.identifier_contexts:
             if existing_identifier_context.context_type == identifier_context.context_type and existing_identifier_context.context_name == identifier_context.context_name:
                 duplicates = True

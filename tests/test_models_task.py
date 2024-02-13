@@ -1849,6 +1849,19 @@ class TestClassIdentifierContexts(unittest.TestCase):    # pragma: no cover
             counter += 1
         self.assertEqual(counter, 2)
 
+    def test_init_basic_2(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = 'Not the right type'
+        ic3 = None
+        ics = IdentifierContexts()
+        self.assertIsNotNone(ics)
+        self.assertTrue(ics.is_empty())
+        ics.add_identifier_context(identifier_context=ic1)
+        ics.add_identifier_context(identifier_context=ic2)
+        ics.add_identifier_context(identifier_context=ic3)
+        self.assertFalse(ics.is_empty())
+        self.assertEqual(len(ics), 1)
+
     def test_find_matching_identifier_context_1(self):
         ic1 = IdentifierContext(context_type='type1', context_name='context1')
         ic2 = IdentifierContext(context_type='type2', context_name='context2')

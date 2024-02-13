@@ -952,11 +952,28 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 kind='Processor1',
                 version='v1',
                 spec={'field1': 'value1'},
-                metadata={
-                    'name': 'test1',
-                    'annotations': {
-                        'contexts': 'c1,c2'
-                    }
+                metadata = {
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test1"
+                        },
+                    ],
+                    "contextualIdentifiers": [
+                        {
+                            "type": "ExecutionScope",
+                            "key": "INCLUDE",
+                            "contexts": [
+                                {
+                                    "type": "Environment",
+                                    "names": [
+                                        "c1",
+                                        "c2"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 logger=tasks.logger
             )
@@ -966,11 +983,27 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
                 kind='Processor1',
                 version='v1',
                 spec={'field1': 'value1'},
-                metadata={
-                    'name': 'test2',
-                    'annotations': {
-                        'contexts': 'c2',
-                    }
+                metadata = {
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test2"
+                        },
+                    ],
+                    "contextualIdentifiers": [
+                        {
+                            "type": "ExecutionScope",
+                            "key": "INCLUDE",
+                            "contexts": [
+                                {
+                                    "type": "Environment",
+                                    "names": [
+                                        "c2"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 logger=tasks.logger
             )

@@ -1988,6 +1988,25 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         matching_identifier2 = Identifier(identifier_type='id_type2', key='key2')
         self.assertTrue(identifiers.identifier_found(identifier=matching_identifier2))
 
+    def test_identifiers_no_matching_identifier(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type2', context_name='context2')
+        main_ics = IdentifierContexts()
+        main_ics.add_identifier_context(identifier_context=ic1)
+        main_ics.add_identifier_context(identifier_context=ic2)
+        
+        identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        identifier2 = Identifier(identifier_type='id_type2', key='key2')
+        identifiers = Identifiers()
+        identifiers.add_identifier(identifier=identifier1)
+        identifiers.add_identifier(identifier=identifier2)
+
+        no_matching_identifier1 = Identifier(identifier_type='id_type1', key='key3', val='val1', identifier_contexts=main_ics)
+        self.assertFalse(identifiers.identifier_found(identifier=no_matching_identifier1))
+
+        no_matching_identifier2 = Identifier(identifier_type='id_type4', key='key2')
+        self.assertFalse(identifiers.identifier_found(identifier=no_matching_identifier2))
+
 
 class TestFunctionBuildNonContextualIdentifiers(unittest.TestCase):    # pragma: no cover
 

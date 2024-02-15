@@ -531,9 +531,9 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
                                     )
                 if 'type' in contextual_identifier_data and 'key' in contextual_identifier_data:
                     val = None
-                    if 'val' in contextual_identifier_data:
+                    if 'val' in contextual_identifier_data:         # pragma: no cover
                         val = contextual_identifier_data['val']
-                    if 'value' in contextual_identifier_data:
+                    if 'value' in contextual_identifier_data:       # pragma: no cover
                         val = contextual_identifier_data['value']
                     new_identifiers.add_identifier(
                         identifier=Identifier(

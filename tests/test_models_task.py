@@ -208,6 +208,60 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertTrue(match_1)
         self.assertFalse(match_2)
 
+    def test_task_basic_init_minimal_with_name_and_value_1(self):
+        identifier_type = 'Label'
+        identifier_key = 'test1'
+        identifier_val = 'val2'
+        metadata = {
+            "identifiers": [
+                {
+                    "type": identifier_type,
+                    "key": identifier_key,
+                    "val": identifier_val,
+                }
+            ]
+        }
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+        matching_identifier = Identifier(identifier_type=identifier_type, key=identifier_key, val=identifier_val)
+        none_matching_identifier_1 = Identifier(identifier_type=identifier_type, key=identifier_key, val='wrong')
+        none_matching_identifier_2 = Identifier(identifier_type=identifier_type, key='wrong', val=identifier_val)
+        none_matching_identifier_3 = Identifier(identifier_type='wrong', key=identifier_key, val=identifier_val)
+        self.assertTrue(t.match_name_or_label_identifier(identifier=matching_identifier))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_1))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_2))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_3))
+
+    def test_task_basic_init_minimal_with_name_and_value_2(self):
+        identifier_type = 'Label'
+        identifier_key = 'test1'
+        identifier_val = 'val2'
+        metadata = {
+            "identifiers": [
+                {
+                    "type": identifier_type,
+                    "key": identifier_key,
+                    "value": identifier_val,
+                }
+            ]
+        }
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+        matching_identifier = Identifier(identifier_type=identifier_type, key=identifier_key, val=identifier_val)
+        none_matching_identifier_1 = Identifier(identifier_type=identifier_type, key=identifier_key, val='wrong')
+        none_matching_identifier_2 = Identifier(identifier_type=identifier_type, key='wrong', val=identifier_val)
+        none_matching_identifier_3 = Identifier(identifier_type='wrong', key=identifier_key, val=identifier_val)
+        self.assertTrue(t.match_name_or_label_identifier(identifier=matching_identifier))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_1))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_2))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_3))
+
     def test_task_basic_init_minimal_with_no_name_produces_debug_message_when_lookup_by_name_is_done(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
         match_1 = t.task_match_name(name='test1')

@@ -533,6 +533,8 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
                     val = None
                     if 'val' in contextual_identifier_data:
                         val = contextual_identifier_data['val']
+                    if 'value' in contextual_identifier_data:
+                        val = contextual_identifier_data['value']
                     new_identifiers.add_identifier(
                         identifier=Identifier(
                             identifier_type=contextual_identifier_data['type'],

@@ -1126,8 +1126,3 @@ class Tasks:
                                 logger=self.logger
                             )
 
-
-def find_all_tasks_matching_contextual_identifiers(tasks: Tasks, contextual_identifiers: Identifiers)->Tasks:
-    discovered_tasks = Tasks(logger=tasks.logger, key_value_store=tasks.key_value_store, hooks=tasks.hooks, state_persistence=tasks.state_persistence)
-
-    return discovered_tasks

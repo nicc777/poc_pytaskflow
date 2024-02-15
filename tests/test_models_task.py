@@ -2007,6 +2007,49 @@ class TestClassIdentifiers(unittest.TestCase):    # pragma: no cover
         no_matching_identifier2 = Identifier(identifier_type='id_type4', key='key2')
         self.assertFalse(identifiers.identifier_found(identifier=no_matching_identifier2))
 
+    def test_to_dict(self):
+        ic1 = IdentifierContext(context_type='type1', context_name='context1')
+        ic2 = IdentifierContext(context_type='type1', context_name='context2')
+        ic3 = IdentifierContext(context_type='type2', context_name='context3')
+        main_ics = IdentifierContexts()
+        main_ics.add_identifier_context(identifier_context=ic1)
+        main_ics.add_identifier_context(identifier_context=ic2)
+        main_ics.add_identifier_context(identifier_context=ic3)
+        
+        identifier1 = Identifier(identifier_type='id_type1', key='key1', val='val1', identifier_contexts=main_ics)
+        identifier2 = Identifier(identifier_type='id_type2', key='key2')
+        identifiers = Identifiers()
+        identifiers.add_identifier(identifier=identifier1)
+        identifiers.add_identifier(identifier=identifier2)
+
+        metadata = identifiers.to_metadata_dict()
+        self.assertIsNotNone(metadata)
+        self.assertIsInstance(metadata, dict)
+        self.assertTrue('identifiers' in metadata)
+        self.assertTrue('contextualIdentifiers' in metadata)
+        print('IDENTIFIERS METADATA DICT: {}'.format(json.dumps(metadata)))
+        self.assertEqual(len(metadata['contextualIdentifiers']), 1)
+        self.assertEqual(len(metadata['identifiers']), 1)
+        for non_contextual_identifier in metadata['identifiers']:
+            self.assertTrue('contexts' not in non_contextual_identifier)
+        for contextual_identifier in metadata['contextualIdentifiers']:
+            self.assertTrue('contexts' in contextual_identifier)
+            type1_found = False
+            for context in contextual_identifier['contexts']:
+                self.assertTrue('type' in context)
+                self.assertTrue('names' in context)
+                context_type = context['type']
+                context_names = context['names']
+                self.assertIsInstance(context_type, str)
+                self.assertIsInstance(context_names, list)
+                if context_type == 'type1':
+                    type1_found = True
+                    self.assertTrue(len(context_names), 2)
+                else:
+                    self.assertTrue(len(context_names), 1)
+                self.assertTrue(type1_found)
+
+
 
 class TestFunctionBuildNonContextualIdentifiers(unittest.TestCase):    # pragma: no cover
 

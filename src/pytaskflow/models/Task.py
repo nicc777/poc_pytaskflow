@@ -250,23 +250,42 @@ class Identifiers(Sequence):
             Any other "identifiers" (with or without contexts) must be handled/processed by the TaskProcessor Implementation as required
         """
         metadata = dict()
+        identifier: Identifier
         for identifier in self.identifiers:
             if isinstance(identifier, Identifier):
-                if identifier.is_contextual_identifier is True:
-                    if 'annotations' not in metadata:
-                        metadata['annotations'] = dict()
-                    if 'contextualIdentifiers' not in metadata['annotations']:
-                        metadata['annotations']['contextualIdentifiers'] = list()
 
-                    # TODO
+                context_types = dict()
+                item = dict()
+                item['type'] = identifier.identifier_type
+                item['key'] = identifier.key
+                if identifier.val is not None:
+                    item['val'] = identifier.val
+
+                if identifier.is_contextual_identifier is True:
+                    if 'contextualIdentifiers' not in metadata:
+                        metadata['contextualIdentifiers'] = list()
+
+                    item['contexts'] = list()
+                    identifier_context: IdentifierContext
+                    for identifier_context in identifier.identifier_contexts:
+                        if identifier_context.context_type not in context_types:
+                            context_types[identifier_context.context_type] = list()
+                        context_types[identifier_context.context_type].append(identifier_context.context_name)
+
+                    for context_type, context_names in context_types.items():
+                        item['contexts'].append(
+                            {
+                                'type': context_type,
+                                'names': context_names
+                            }
+                        )
+
+                    metadata['contextualIdentifiers'].append(item)
 
                 else:
-                    if 'annotations' not in metadata:
-                        metadata['annotations'] = dict()
-                    if 'identifiers' not in metadata['annotations']:
-                        metadata['annotations']['identifiers'] = list()
-
-                    # TODO
+                    if 'identifiers' not in metadata:
+                        metadata['identifiers'] = list()
+                    metadata['identifiers'].append(item)
 
         return metadata
 

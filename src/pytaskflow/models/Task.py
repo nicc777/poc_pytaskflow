@@ -494,9 +494,9 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
     """
         metadata:
           contextualIdentifiers:
-          - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-            key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-            value val: STRING         # Example: Null|None
+          - type: STRING                # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
+            key: STRING                 # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
+            value: STRING               # Example: Null|None
             contexts:
             - type: STRING              # Example: Environment
               names:

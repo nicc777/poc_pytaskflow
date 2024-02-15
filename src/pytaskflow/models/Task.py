@@ -708,13 +708,27 @@ class Task:
         task_identifier: Identifier
         for task_identifier in self.identifiers:
             if task_identifier.identifier_type != 'ExecutionScope' and task_identifier.key != 'processing':
-                if len(identifier.identifier_contexts) == 0:            
-                    if task_identifier.identifier_type == 'ManifestName':
-                        if task_identifier.key == identifier.key:
-                            return True
-                    elif task_identifier.identifier_type == 'Label':
-                        if task_identifier.key == identifier.key and task_identifier.val == identifier.val:
-                            return True
+
+                basic_match = False
+                if task_identifier.identifier_type == 'ManifestName':
+                    if task_identifier.key == identifier.key:
+                        basic_match = True
+                elif task_identifier.identifier_type == 'Label':
+                    if task_identifier.key == identifier.key and task_identifier.val == identifier.val:
+                        basic_match = True
+
+                if len(identifier.identifier_contexts) == 0:
+                    return basic_match  # No need for further processing - we have at least one match
+                else:
+                    # If we have a basic match, and the input identifier has some context,  match at least one of the provided contexts as well in order to return true
+                    if basic_match is True:
+                        task_identifier_context: IdentifierContext
+                        for task_identifier_context in task_identifier.identifier_contexts:
+                            identifier_context: IdentifierContext
+                            for identifier_context in identifier.identifier_contexts:
+                                if identifier_context == task_identifier_context:
+                                    return True # No need for further processing - we have at least one contextual match as well
+
         
         return False
 

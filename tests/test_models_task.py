@@ -262,6 +262,67 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_2))
         self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_3))
 
+    def test_task_basic_init_minimal_with_name_and_value_3(self):
+        identifier_type = 'Label'
+        identifier_key = 'test1'
+        metadata = {
+            "contextualIdentifiers": [
+                {
+                    "type": identifier_type,
+                    "key": identifier_key,
+                    "contexts": [
+                        {
+                            "type": "Environment",
+                            "names": [
+                                "c1",
+                                "c2"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+        t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.kind, 'TestKind')
+
+        matching_contexts_1 = IdentifierContexts()
+        matching_contexts_1.add_identifier_context(
+            identifier_context=IdentifierContext(context_type='Environment', context_name='c1')
+        )
+        matching_contexts_1.add_identifier_context(
+            identifier_context=IdentifierContext(context_type='Environment', context_name='c2')
+        )
+        matching_contexts_2 = IdentifierContexts()
+        matching_contexts_2.add_identifier_context(
+            identifier_context=IdentifierContext(context_type='Environment', context_name='c1')
+        )
+        matching_contexts_3 = IdentifierContexts()
+        matching_contexts_3.add_identifier_context(
+            identifier_context=IdentifierContext(context_type='Environment', context_name='c2')
+        )
+
+        none_matching_contexts_1 = IdentifierContexts()
+        none_matching_contexts_1.add_identifier_context(
+            identifier_context=IdentifierContext(context_type='Environment', context_name='c3')
+        )
+
+        matching_identifier_1 = Identifier(identifier_type=identifier_type, key=identifier_key, identifier_contexts=matching_contexts_1)
+        matching_identifier_2 = Identifier(identifier_type=identifier_type, key=identifier_key, identifier_contexts=matching_contexts_2)
+        matching_identifier_3 = Identifier(identifier_type=identifier_type, key=identifier_key, identifier_contexts=matching_contexts_3)
+        none_matching_identifier_1 = Identifier(identifier_type=identifier_type, key=identifier_key, val='wrong')
+        none_matching_identifier_2 = Identifier(identifier_type=identifier_type, key='wrong')
+        none_matching_identifier_3 = Identifier(identifier_type='wrong', key=identifier_key)
+        none_matching_identifier_4 = Identifier(identifier_type=identifier_type, key=identifier_key, identifier_contexts=none_matching_contexts_1)
+        self.assertTrue(t.match_name_or_label_identifier(identifier=matching_identifier_1))
+        self.assertTrue(t.match_name_or_label_identifier(identifier=matching_identifier_2))
+        self.assertTrue(t.match_name_or_label_identifier(identifier=matching_identifier_3))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_1))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_2))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_3))
+        self.assertFalse(t.match_name_or_label_identifier(identifier=none_matching_identifier_4))
+
     def test_task_basic_init_minimal_with_no_name_produces_debug_message_when_lookup_by_name_is_done(self):
         t = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=dict(), logger=self.logger)
         match_1 = t.task_match_name(name='test1')

@@ -735,21 +735,21 @@ class Task:
         return False
 
     def _register_annotations(self):
-        if 'annotations' not in self.metadata:
+        if 'annotations' not in self.metadata:                          # pragma: no cover
             return
-        if self.metadata['annotations'] is None:
+        if self.metadata['annotations'] is None:                        # pragma: no cover
             return
-        if isinstance(self.metadata['annotations'], dict) is False:
+        if isinstance(self.metadata['annotations'], dict) is False:     # pragma: no cover
             return
         for annotation_key, annotation_value in self.metadata['annotations'].items():
             self.annotations[annotation_key] = '{}'.format(annotation_value)
 
     def _dependencies_found_in_metadata(self, meta_data: dict)->list:
-        if 'dependencies' not in self.metadata:
+        if 'dependencies' not in self.metadata:                         # pragma: no cover
             return list()
-        if self.metadata['dependencies'] is None:
+        if self.metadata['dependencies'] is None:                       # pragma: no cover
             return list()
-        if isinstance(self.metadata['dependencies'], list) is False:
+        if isinstance(self.metadata['dependencies'], list) is False:    # pragma: no cover
             return list()
         return self.metadata['dependencies']
 

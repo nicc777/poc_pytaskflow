@@ -1175,6 +1175,49 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         )
         self.assertIsNone(tasks.find_task_by_name(name='test2'))
 
+    def test_tasks_method_find_task_by_name_1(self):
+        tasks = Tasks(logger=TestLogger(), key_value_store=KeyValueStore())
+        tasks.register_task_processor(processor=Processor1())
+        tasks.register_task_processor(processor=Processor2())
+        tasks.add_task(
+            task=Task(
+                kind='Processor1',
+                version='v1',
+                spec={'field1': 'value1'},
+                metadata = {
+                    "identifiers": [
+                        {
+                            "type": "ManifestName",
+                            "key": "test1"
+                        },
+                    ],
+                    "contextualIdentifiers": [
+                        {
+                            "type": "ExecutionScope",
+                            "key": "INCLUDE",
+                            "contexts": [
+                                {
+                                    "type": "Environment",
+                                    "names": [
+                                        "c1",
+                                        "c2"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                logger=tasks.logger
+            )
+        )
+        task1 = tasks.find_task_by_name(name='test1', calling_task_id='test2')
+        self.assertIsNotNone(task1)
+        self.assertIsInstance(task1, Task)
+        self.assertEqual(task1.kind, 'Processor1')
+
+        task2 = tasks.find_task_by_name(name='test1', calling_task_id='test1')
+        self.assertIsNone(task2)
+        
 
 class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
 
